@@ -754,24 +754,56 @@ function closeEnhanceModal() {
     if (modal) modal.style.display = "none";
 }
 
-//example profile and demo btns
-document.getElementById('addStudentSkillBtn')?.addEventListener('click', openSkillModal);
+//PROFILE AND POP-UP  AND FORMS BTTNS 
+// document.getElementById('addStudentSkillBtn')?.addEventListener('click', openSkillModal);
 
+// document.getElementById('editStudentProfileBtn')?.addEventListener('click', () => {
+//     if (!currentUser) {
+//         showNotification('Please login first', 'error');
+//         return;
+//     }
+//     const name = prompt('Enter your name:', currentUser.name);
+//     if (name) {
+//         currentUser.name = name;
+//         document.getElementById('studentName').textContent = name;
+//     }
+//     const title = prompt('Enter your title:', currentUser.title);
+//     if (title) {
+//         currentUser.title = title;
+//         document.getElementById('studentTitle').textContent = title;
+//     }
+// });
+
+// Edit Profile - Open Form
 document.getElementById('editStudentProfileBtn')?.addEventListener('click', () => {
     if (!currentUser) {
         showNotification('Please login first', 'error');
         return;
     }
-    const name = prompt('Enter your name:', currentUser.name);
-    if (name) {
-        currentUser.name = name;
-        document.getElementById('studentName').textContent = name;
-    }
-    const title = prompt('Enter your title:', currentUser.title);
-    if (title) {
-        currentUser.title = title;
-        document.getElementById('studentTitle').textContent = title;
-    }
+
+    document.getElementById('editName').value = currentUser.name || '';
+    document.getElementById('editTitle').value = currentUser.title || '';
+
+    document.getElementById('editProfileForm').style.display = 'block';
+});
+
+// Edit Profile - Save Changes
+document.getElementById('editProfileForm')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+
+    currentUser.name = document.getElementById('editName').value.trim();
+    currentUser.title = document.getElementById('editTitle').value.trim();
+
+    document.getElementById('studentName').textContent = currentUser.name;
+    document.getElementById('studentTitle').textContent = currentUser.title;
+
+    document.getElementById('editProfileForm').style.display = 'none';
+    showNotification('Profile updated successfully', 'success');
+});
+
+// Edit Profile - Cancel
+document.getElementById('cancelEditBtn')?.addEventListener('click', () => {
+    document.getElementById('editProfileForm').style.display = 'none';
 });
 
 document.getElementById('connectStudentGithubBtn')?.addEventListener('click', () => {
@@ -1839,3 +1871,5 @@ window.addEventListener('load', () => {
         setTimeout(initializeLinkedInOnDashboardLoad, 100);
     }
 });
+
+
