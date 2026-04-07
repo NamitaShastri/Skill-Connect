@@ -340,12 +340,117 @@ app.post("/api/user/:id/clubs", async (req, res) => {
   }
 });
 
-// Leave Club
-app.delete("/api/user/:id/clubs/:clubId", async (req, res) => {
-  const { id, clubId } = req.params;
+// Join Club
+app.post("/api/user/:id/clubs", async (req, res) => {
+  const userId = req.params.id;
+  const { clubName } = req.body;
   try {
-    await pool.query('DELETE FROM club_members WHERE user_id = $1 AND club_id = $2', [id, clubId]);
+    const clubRes = await pool.query('SELECT id FROM clubs WHERE name = $1', [clubName]);
+    if (clubRes.rows.length === 0) return res.status(404).json({ error: "Club not found" });
+    const clubId = clubRes.rows[0].id;
+    await pool.query('INSERT INTO club_members (user_id, club_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [userId, clubId]);
     res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+// Leave Club
+app.delete("/api/user/:id/clubs/:clubName", async (req, res) => {
+  const { id, clubName } = req.params;
+  try {
+    const clubRes = await pool.query('SELECT id FROM clubs WHERE name = $1', [clubName]);
+    if (clubRes.rows.length > 0) {
+       await pool.query('DELETE FROM club_members WHERE user_id = $1 AND club_id = $2', [id, clubRes.rows[0].id]);
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+
+// Add Skill
+app.post("/api/user/:id/skills", async (req, res) => {
+  const userId = req.params.id;
+  const { name, level, category } = req.body;
+  try {
+    await pool.query('INSERT INTO skills (user_id, name, level, category) VALUES ($1, $2, $3, $4)', [userId, name, level, category]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+// Delete Skill
+app.delete("/api/user/:id/skills/:skillName", async (req, res) => {
+  const userId = req.params.id;
+  const skillName = req.params.skillName;
+  try {
+    await pool.query('DELETE FROM skills WHERE user_id = $1 AND name = $2', [userId, skillName]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+// Update Profile
+app.put("/api/user/:id/profile", async (req, res) => {
+  const userId = req.params.id;
+  const { name, title } = req.body;
+  try {
+    await pool.query('UPDATE users SET name = $1, title = $2 WHERE id = $3', [name, title, userId]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+// Update Socials
+app.put("/api/user/:id/socials", async (req, res) => {
+  const userId = req.params.id;
+  const { platform, connected } = req.body; // platform: 'github' or 'linkedin'
+  try {
+    if (platform === 'github') {
+      await pool.query('UPDATE users SET github_connected = $1 WHERE id = $2', [connected, userId]);
+    } else if (platform === 'linkedin') {
+      await pool.query('UPDATE users SET linkedin_connected = $1 WHERE id = $2', [connected, userId]);
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+// Add Project
+app.post("/api/projects", async (req, res) => {
+  const { owner_id, title, description, tags, github_url } = req.body;
+  try {
+    const result = await pool.query(
+      'INSERT INTO projects (title, description, tags, owner_id, github_url) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+      [title, description, tags, owner_id, github_url || null]
+    );
+    res.json({ success: true, projectId: result.rows[0].id });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+// Get Projects
+app.get("/api/projects", async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT p.*, (SELECT name FROM users WHERE id = p.owner_id) as owner_name 
+      FROM projects p
+    `);
+    res.json(rows);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Database error" });

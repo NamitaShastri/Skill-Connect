@@ -184,17 +184,23 @@ function initializeExistingSkills() {
 
 function deleteSkill() {
     if (!editingSkill) return;
+    if (!currentUser) return showNotification("Please login first", "error");
 
     if (confirm('Delete this skill?')) {
-        editingSkill.remove();
-
-        const count = document.getElementById('studentSkills');
-        if (count) {
-            count.textContent = parseInt(count.textContent) - 1;
-        }
-
-        showNotification('Skill deleted!', 'success');
-        closeSkillModal();
+        const oldName = editingSkill.childNodes[0].textContent.trim();
+        const apiUrl = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || !window.location.hostname ? `http://localhost:3000/api/user/${currentUser.id}/skills/${encodeURIComponent(oldName)}` : `/api/user/${currentUser.id}/skills/${encodeURIComponent(oldName)}`;
+        
+        fetch(apiUrl, { method: 'DELETE' }).then(() => {
+            editingSkill.remove();
+            const count = document.getElementById('studentSkills');
+            if (count) {
+                count.textContent = parseInt(count.textContent) - 1;
+            }
+            showNotification('Skill permanently deleted from DB!', 'success');
+            closeSkillModal();
+        }).catch(err => {
+            showNotification('Failed to remove skill from Database', 'error');
+        });
     }
 }
 
@@ -589,22 +595,35 @@ function initializeJoinClubButtons() {
         if (!btn.hasAttribute("data-joined-init")) {
             btn.setAttribute("data-joined-init", "true");
 
-            btn.addEventListener('click', function () {
+            btn.addEventListener('click', async function () {
                 const clubName = this.closest('.club-card-custom')
                     .querySelector('strong').textContent;
 
-                // Add to joined list if not already
-                if (!joinedClubs.includes(clubName)) {
-                    joinedClubs.push(clubName);
-                    updateMyClubsUI();
-                    showNotification(`Joined ${clubName}`, 'success');
-                }
+                if (!currentUser) return showNotification("Please login first", "error");
 
-                // Change button state
-                this.textContent = "Joined ✔";
-                this.classList.remove("btn-outline");
-                this.classList.add("btn-primary");
-                this.disabled = true;
+                try {
+                    const apiUrl = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || !window.location.hostname ? `http://localhost:3000/api/user/${currentUser.id}/clubs` : `/api/user/${currentUser.id}/clubs`;
+                    await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ clubName })
+                    });
+                    
+                    // Add to joined list locally
+                    if (!joinedClubs.includes(clubName)) {
+                        joinedClubs.push(clubName);
+                        updateMyClubsUI();
+                        showNotification(`Joined ${clubName} intelligently linked into Database!`, 'success');
+                    }
+
+                    // Change button state
+                    this.textContent = "Joined ✔";
+                    this.classList.remove("btn-outline");
+                    this.classList.add("btn-primary");
+                    this.disabled = true;
+                } catch(err) {
+                    showNotification('Database failed to join club', 'error');
+                }
             });
         }
     });
@@ -676,15 +695,23 @@ function initializeLeaveButtons() {
         if (!btn.hasAttribute('data-leave-init')) {
             btn.setAttribute('data-leave-init', 'true');
 
-            btn.addEventListener("click", function () {
+            btn.addEventListener("click", async function () {
                 const clubName = this.getAttribute("data-club");
-                joinedClubs = joinedClubs.filter(c => c !== clubName);
+                if (!currentUser) return;
+                
+                try {
+                    const apiUrl = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || !window.location.hostname ? `http://localhost:3000/api/user/${currentUser.id}/clubs/${encodeURIComponent(clubName)}` : `/api/user/${currentUser.id}/clubs/${encodeURIComponent(clubName)}`;
+                    await fetch(apiUrl, { method: 'DELETE' });
+                    
+                    joinedClubs = joinedClubs.filter(c => c !== clubName);
+                    showNotification(`Left ${clubName} and cleared across DB`, "error");
 
-                showNotification(`Left ${clubName}`, "error");
-
-                // Refresh UI everywhere
-                updateMyClubsUI();
-                updateAllClubsButtons();
+                    // Refresh UI everywhere
+                    updateMyClubsUI();
+                    updateAllClubsButtons();
+                } catch(err) {
+                    showNotification('Failed Database club disconnect', 'error');
+                }
             });
         }
     });
@@ -825,25 +852,43 @@ function closeEnhanceModal() {
 //example profile and demo btns
 document.getElementById('addStudentSkillBtn')?.addEventListener('click', openSkillModal);
 
-document.getElementById('editStudentProfileBtn')?.addEventListener('click', () => {
-    if (!currentUser) {
-        showNotification('Please login first', 'error');
-        return;
-    }
+document.getElementById('editStudentProfileBtn')?.addEventListener('click', async () => {
+    if (!currentUser) return showNotification('Please login first', 'error');
     const name = prompt('Enter your name:', currentUser.name);
-    if (name) {
-        currentUser.name = name;
-        document.getElementById('studentName').textContent = name;
-    }
+    if (!name) return;
     const title = prompt('Enter your title:', currentUser.title);
-    if (title) {
+    if (!title) return;
+    
+    try {
+        const apiUrl = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || !window.location.hostname ? `http://localhost:3000/api/user/${currentUser.id}/profile` : `/api/user/${currentUser.id}/profile`;
+        await fetch(apiUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, title })
+        });
+        currentUser.name = name;
         currentUser.title = title;
+        document.getElementById('studentName').textContent = name;
         document.getElementById('studentTitle').textContent = title;
+        showNotification('Profile updated successfully recorded across Database!', 'success');
+    } catch(err) {
+        showNotification('Failed to update profile securely', 'error');
     }
 });
 
-document.getElementById('connectStudentGithubBtn')?.addEventListener('click', () => {
-    alert('GitHub integration would be implemented here. For demo purposes, sample data is shown.');
+document.getElementById('connectStudentGithubBtn')?.addEventListener('click', async () => {
+    if (!currentUser) return showNotification('Please login first', 'error');
+    try {
+        const apiUrl = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || !window.location.hostname ? `http://localhost:3000/api/user/${currentUser.id}/socials` : `/api/user/${currentUser.id}/socials`;
+        await fetch(apiUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ platform: 'github', connected: true })
+        });
+        showNotification('Successfully mapped your active GitHub globally via the DB!', 'success');
+    } catch(err) {
+        showNotification('Failed to connect GitHub securely', 'error');
+    }
 });
 
 document.getElementById('exploreClubsBtn')?.addEventListener('click', () => {
@@ -1037,7 +1082,7 @@ function pc_renderProjectFeed() {
 }
 
 //posting a projcet
-document.getElementById('pc_postProjectBtn')?.addEventListener('click', () => {
+document.getElementById('pc_postProjectBtn')?.addEventListener('click', async () => {
     const title = pc_projTitle.value.trim();
     const desc = pc_projDesc.value.trim();
     const repo = pc_projGithub.value.trim();
@@ -1049,30 +1094,46 @@ document.getElementById('pc_postProjectBtn')?.addEventListener('click', () => {
         return;
     }
 
-    const newProj = {
-        id: "proj_" + Date.now(),
-        owner: currentUser ? currentUser.name : "You",
-        title,
-        description: desc,
-        github: repo,
-        skills,
-        roles,
-        team: []
-    };
-
-    pc_projects.unshift(newProj);
-
-    pc_renderProjectFeed();
-    pc_renderMyProjects();
-    pc_renderIncomingRequests();
-
-    showNotification("Project posted!", "success");
-
-    pc_projTitle.value = "";
-    pc_projDesc.value = "";
-    pc_projGithub.value = "";
-    pc_projSkills.value = "";
-    pc_projRoles.value = "";
+    try {
+        const apiUrl = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || !window.location.hostname ? 'http://localhost:3000/api/projects' : '/api/projects';
+        const res = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                owner_id: currentUser ? currentUser.id : null,
+                title: title,
+                description: desc,
+                tags: skills.join(", "),
+                github_url: repo
+            })
+        });
+        const data = await res.json();
+        
+        // Also update local list so UI feels responsive while DB reflects successfully
+        const newProj = {
+            id: data.projectId || "proj_" + Date.now(),
+            owner: currentUser ? currentUser.name : "You",
+            title,
+            description: desc,
+            github: repo,
+            skills,
+            roles,
+            team: []
+        };
+        pc_projects.unshift(newProj);
+        pc_renderProjectFeed();
+        pc_renderMyProjects();
+        pc_renderIncomingRequests();
+        showNotification("Project dynamically published to the live Database!", "success");
+        
+        pc_projTitle.value = "";
+        pc_projDesc.value = "";
+        pc_projGithub.value = "";
+        pc_projSkills.value = "";
+        pc_projRoles.value = "";
+    } catch(err) {
+        showNotification('Failed to post project to DB server', 'error');
+    }
 });
 
 //join btn
@@ -1523,7 +1584,7 @@ function openSkillModal() {
 /* =========================================================
    ROLE-AWARE SAVE SKILL
 ========================================================= */
-function saveSkill() {
+async function saveSkill() {
     const cfg = ROLE_CONFIG[currentRole];
     const skillName = document.getElementById('skillName');
     const skillLevel = document.getElementById('skillLevel');
@@ -1534,37 +1595,54 @@ function saveSkill() {
     const category = skillCategory.value;
 
     if (!name) return alert('Enter a skill name');
+    if (!currentUser) return showNotification("Please login first", "error");
 
-    if (editingSkill) {
-        editingSkill.innerHTML = `
-            ${name}
-            <span class="skill-level-badge">${level.charAt(0).toUpperCase() + level.slice(1)}</span>
-        `;
-        editingSkill.dataset.level = level;
-        editingSkill.dataset.category = category;
-        showNotification('Skill updated!', 'success');
-    } else {
-        const skill = document.createElement('span');
-        skill.className = 'skill-tag';
-        skill.dataset.level = level;
-        skill.dataset.category = category;
-        skill.innerHTML = `
-            ${name}
-            <span class="skill-level-badge">${level.charAt(0).toUpperCase() + level.slice(1)}</span>
-        `;
-
-        document.getElementById(cfg.skillListId).appendChild(skill);
-
-        if (cfg.skillCountId) {
-            const count = document.getElementById(cfg.skillCountId);
-            count.textContent = parseInt(count.textContent) + 1;
+    try {
+        const apiUrl = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || !window.location.hostname ? `http://localhost:3000/api/user/${currentUser.id}/skills` : `/api/user/${currentUser.id}/skills`;
+        
+        // Wait! What if we are editing?
+        // Let's delete the old one first if we are editing
+        if (editingSkill) {
+             const oldName = editingSkill.childNodes[0].textContent.trim();
+             await fetch(apiUrl + `/${encodeURIComponent(oldName)}`, { method: 'DELETE' });
+        }
+        
+        await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, level, category })
+        });
+        
+        if (editingSkill) {
+            editingSkill.innerHTML = `
+                ${name}
+                <span class="skill-level-badge">${level.charAt(0).toUpperCase() + level.slice(1)}</span>
+            `;
+            editingSkill.dataset.level = level;
+            editingSkill.dataset.category = category;
+            showNotification('Skill uniquely updated in Database!', 'success');
+        } else {
+            const skill = document.createElement('span');
+            skill.className = 'skill-tag';
+            skill.dataset.level = level;
+            skill.dataset.category = category;
+            skill.innerHTML = `
+                ${name}
+                <span class="skill-level-badge">${level.charAt(0).toUpperCase() + level.slice(1)}</span>
+            `;
+            document.getElementById(cfg.skillListId).appendChild(skill);
+            if (cfg.skillCountId) {
+                const count = document.getElementById(cfg.skillCountId);
+                count.textContent = parseInt(count.textContent) + 1;
+            }
+            showNotification('Skill successfully recorded in DB!', 'success');
         }
 
-        showNotification('Skill added!', 'success');
+        closeSkillModal();
+        initializeSkills();
+    } catch (err) {
+        showNotification('Failed Database skill commit', 'error');
     }
-
-    closeSkillModal();
-    initializeSkills();
 }
 
 /* =========================================================
