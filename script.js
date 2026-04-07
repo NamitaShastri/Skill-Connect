@@ -349,8 +349,36 @@ function initializeMentorshipButtons() {
 }
 
 //initialize network page
-function initializeNetworkPage() {
+async function initializeNetworkPage() {
     initializeNetworkFilters();
+    try {
+        const apiUrl = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || !window.location.hostname
+            ? 'http://localhost:3000/api/network' 
+            : '/api/network';
+        const res = await fetch(apiUrl);
+        if (res.ok) {
+            const users = await res.json();
+            const grid = document.querySelector('#network-page .profiles-grid');
+            if (grid) {
+                grid.innerHTML = users.map(u => `
+                    <div class="profile-card" data-department="${(u.department||'').toLowerCase()}" data-role="${(u.role||'').toLowerCase()}" data-year="${u.year||''}" data-skills="${(u.skills||'').toLowerCase()}">
+                        <div class="profile-avatar"><i class="fas fa-user"></i></div>
+                        <div class="profile-name">${u.name}</div>
+                        <div class="profile-title">${u.department} - ${u.year? u.year+' Year': u.role}</div>
+                        <div class="profile-skills" style="display: flex; flex-wrap: wrap; gap: 5px;">
+                            ${(u.skills||'').split(',').map(s => s ? `<span class="skill-tag">${s.trim()}</span>` : '').join('')}
+                        </div>
+                        <div class="profile-actions">
+                            <button class="btn btn-primary" data-init="false">Connect</button>
+                            <button class="btn btn-outline">View Profile</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+    } catch(err) {
+        console.error("Failed fetching network queries:", err);
+    }
     initializeConnectButtons();
     initializeMentorshipButtons();
 }
@@ -458,24 +486,39 @@ function showPage(pageId) {
 }
 
 //login handle
-function handleLogin() {
+async function handleLogin() {
     const email = document.getElementById('loginEmail').value;
     const pass = document.getElementById('loginPassword').value;
 
     if (!email || !pass) return alert('Please fill in all fields');
 
-    if (email === demoAccounts[currentRole].email &&
-        pass === demoAccounts[currentRole].password) {
-
-        currentUser = demoAccounts[currentRole];
-        showDashboard();
-        showNotification(`Welcome ${currentUser.name}!`, 'success');
-    } else {
-        alert('Invalid email or password.');
+    try {
+        // Use full URL if testing without proxy
+        const apiUrl = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || !window.location.hostname
+            ? 'http://localhost:3000/api/login' 
+            : '/api/login';
+            
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password: pass, role: currentRole })
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            currentUser = data.user;
+            showDashboard();
+            showNotification(`Welcome ${currentUser.name}!`, 'success');
+        } else {
+            alert(data.message || 'Invalid email or password.');
+        }
+    } catch (err) {
+        console.error('Login error:', err);
+        alert('Server error. Please try again.');
     }
 }
 
-function showDashboard() {
+async function showDashboard() {
     mainHeader.classList.remove('hidden');
     mainFooter.classList.remove('hidden');
 
@@ -489,6 +532,31 @@ function showDashboard() {
     document.getElementById(cfg.dashboardId).classList.add('active');
     document.getElementById(cfg.nameId).textContent = currentUser.name;
     document.getElementById(cfg.titleId).textContent = currentUser.title;
+
+    try {
+        const apiUrl = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || !window.location.hostname
+            ? `http://localhost:3000/api/user/${currentUser.id}` 
+            : `/api/user/${currentUser.id}`;
+        
+        const res = await fetch(apiUrl);
+        if (res.ok) {
+            const data = await res.json();
+            
+            const skillsListStr =  data.skills.map(skill => `
+                <span class="skill-tag" data-level="${skill.level.toLowerCase()}" data-category="${skill.category}">
+                    ${skill.name}
+                    <span class="skill-level-badge">${skill.level}</span>
+                </span>
+            `).join('');
+            const skillsContainer = document.getElementById(currentRole === 'student' ? 'studentSkillsList' : 'facultyResearchAreas');
+            if (skillsContainer) skillsContainer.innerHTML = skillsListStr;
+            
+            const statsSkillEl = document.getElementById(currentRole === 'student' ? 'studentSkills' : 'facultyPublications');
+            if (statsSkillEl) statsSkillEl.textContent = data.skills.length;
+        }
+    } catch(err) {
+        console.error("Failed fetching profile:", err);
+    }
 
     navLinks.forEach(n => n.classList.remove('active'));
     document.querySelector('[data-page="dashboard"]').classList.add('active');

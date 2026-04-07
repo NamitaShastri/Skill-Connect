@@ -212,6 +212,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import pool from "./db.js";
 
 dotenv.config();
 
@@ -257,6 +258,98 @@ app.get("/health", (req, res) => {
     mock: USE_MOCK,
     gemini: !!genAI
   });
+});
+
+
+// --- DB API ROUTES ---
+
+// Login
+app.post("/api/login", async (req, res) => {
+  const { email, password, role } = req.body;
+  try {
+    const { rows } = await pool.query('SELECT * FROM users WHERE email = $1 AND password = $2 AND role = $3', [email, password, role]);
+    if (rows.length > 0) {
+      res.json({ success: true, user: rows[0] });
+    } else {
+      res.status(401).json({ success: false, message: "Invalid credentials or role" });
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: "Database error" });
+  }
+});
+
+// Get user profile data (skills, clubs)
+app.get("/api/user/:id", async (req, res) => {
+  const userId = req.params.id;
+  try {
+    const userRes = await pool.query('SELECT id, name, year, department, title, email, role, linkedin_connected, github_connected FROM users WHERE id = $1', [userId]);
+    const skillsRes = await pool.query('SELECT * FROM skills WHERE user_id = $1', [userId]);
+    const clubsRes = await pool.query('SELECT c.* FROM clubs c JOIN club_members cm ON c.id = cm.club_id WHERE cm.user_id = $1', [userId]);
+    
+    if (userRes.rows.length === 0) return res.status(404).json({ error: "User not found" });
+
+    res.json({
+      user: userRes.rows[0],
+      skills: skillsRes.rows,
+      clubs: clubsRes.rows
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+// Network / Users list with basic skills
+app.get("/api/network", async (req, res) => {
+  try {
+    const { rows: users } = await pool.query(`
+      SELECT u.id, u.name, u.title, u.department, u.year, u.role, 
+      (SELECT string_agg(s.name, ',') FROM skills s WHERE s.user_id = u.id) as skills
+      FROM users u
+      LIMIT 100
+    `);
+    res.json(users);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+// All clubs
+app.get("/api/clubs", async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT * FROM clubs');
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+// Join Club
+app.post("/api/user/:id/clubs", async (req, res) => {
+  const userId = req.params.id;
+  const { clubId } = req.body;
+  try {
+    await pool.query('INSERT INTO club_members (user_id, club_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [userId, clubId]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+// Leave Club
+app.delete("/api/user/:id/clubs/:clubId", async (req, res) => {
+  const { id, clubId } = req.params;
+  try {
+    await pool.query('DELETE FROM club_members WHERE user_id = $1 AND club_id = $2', [id, clubId]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error" });
+  }
 });
 
 

@@ -5,8 +5,9 @@
   "main": "server.js",
   "dependencies": {
     "@google/generative-ai": "latest",
-    "express": "latest",
     "cors": "latest",
-    "dotenv": "latest"
+    "dotenv": "latest",
+    "express": "latest",
+    "pg": "^8.20.0"
   }
 }

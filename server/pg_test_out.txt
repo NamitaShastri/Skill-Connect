@@ -1,0 +1,1 @@
+DB ERROR: SASL: SCRAM-SERVER-FIRST-MESSAGE: client password must be a string
