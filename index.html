@@ -197,40 +197,9 @@
                         </div>
                     </div>
 
-                    <div class="card post-card">
-                        <div class="post-header">
-                            <div class="post-avatar">
-                                <i class="fas fa-user"></i>
-                            </div>
-                            <div>
-                                <div class="post-user">Namita Shastri</div>
-                                <div class="post-time">2 hours ago</div>
-                            </div>
-                        </div>
-                        <div class="post-content">
-                            <p>Just completed my personal-portfolio portfolio website! Check out the GitHub repository
-                                for the code.
-                            </p>
-                            <div class="repo-card" style="margin-top: 10px;">
-                                <div class="repo-header">
-                                    <div class="repo-name">react-portfolio</div>
-                                    <div class="repo-stats">
-                                        <span><i class="fas fa-star"></i> 24</span>
-                                        <span><i class="fas fa-code-branch"></i> 5</span>
-                                    </div>
-                                </div>
-                                <p>Personal portfolio website built with HTML and styled-components</p>
-                                <div class="skills-list" style="margin-top: 10px;">
-                                    <span class="skill-tag">HTML</span>
-                                    <span class="skill-tag">JavaScript</span>
-                                    <span class="skill-tag">CSS</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="post-actions">
-                            <div class="post-action"><i class="far fa-thumbs-up"></i> Like</div>
-                            <div class="post-action"><i class="far fa-comment"></i> Comment</div>
-                            <div class="post-action"><i class="far fa-share-square"></i> Share</div>
+                    <div id="dashboardRecentPosts">
+                        <div class="card post-card" style="text-align: center; color: var(--gray); padding: 20px;">
+                            Loading recent activity...
                         </div>
                     </div>
                 </div>
@@ -577,58 +546,16 @@
                             <!-- Incoming Requests -->
                             <div class="request-section">
                                 <h4 style="margin-bottom: 15px; color: var(--dark);">Incoming</h4>
-                                <div class="request-item">
-                                    <div class="post-header">
-                                        <div class="post-avatar">
-                                            <i class="fas fa-user"></i>
-                                        </div>
-                                        <div>
-                                            <div class="post-user">Janak Parmar</div>
-                                            <div class="post-time">Computer Science</div>
-                                        </div>
-                                    </div>
-                                    <div class="request-actions">
-                                        <button class="btn btn-primary btn-small" onclick="acceptRequest(this)"><i
-                                                class="fas fa-check"></i></button>
-                                        <button class="btn btn-outline btn-small" onclick="declineRequest(this)"><i
-                                                class="fas fa-times"></i></button>
-                                    </div>
-                                </div>
-                                <div class="request-item">
-                                    <div class="post-header">
-                                        <div class="post-avatar">
-                                            <i class="fas fa-user"></i>
-                                        </div>
-                                        <div>
-                                            <div class="post-user">Garvi Shah</div>
-                                            <div class="post-time">Data Science</div>
-                                        </div>
-                                    </div>
-                                    <div class="request-actions">
-                                        <button class="btn btn-primary btn-small" onclick="acceptRequest(this)"><i
-                                                class="fas fa-check"></i></button>
-                                        <button class="btn btn-outline btn-small" onclick="declineRequest(this)"><i
-                                                class="fas fa-times"></i></button>
-                                    </div>
+                                <div id="incomingRequestsContainer">
+                                    <p style="color: var(--gray); font-size: 0.9rem;">Loading incoming requests...</p>
                                 </div>
                             </div>
 
                             <!-- Sent Requests -->
                             <div class="request-section" style="margin-top: 20px;">
                                 <h4 style="margin-bottom: 15px; color: var(--dark);">Sent</h4>
-                                <div class="request-item">
-                                    <div class="post-header">
-                                        <div class="post-avatar">
-                                            <i class="fas fa-user"></i>
-                                        </div>
-                                        <div>
-                                            <div class="post-user">Ms. Prachi Rajput</div>
-                                            <div class="post-time">Faculty - AI Research</div>
-                                        </div>
-                                    </div>
-                                    <div class="request-status">
-                                        <span style="color: var(--gray); font-size: 0.8rem;">Pending</span>
-                                    </div>
+                                <div id="sentRequestsContainer">
+                                    <p style="color: var(--gray); font-size: 0.9rem;">Loading sent requests...</p>
                                 </div>
                             </div>
                         </div>
@@ -643,16 +570,8 @@
                                 <i class="fas fa-refresh"></i>
                             </button>
                         </div>
-                        <div class="skills-list">
-                            <span class="skill-tag" onclick="filterBySkill('react')">React</span>
-                            <span class="skill-tag" onclick="filterBySkill('python')">Python</span>
-                            <span class="skill-tag" onclick="filterBySkill('machine learning')">Machine Learning</span>
-                            <span class="skill-tag" onclick="filterBySkill('ui/ux design')">UI/UX Design</span>
-                            <span class="skill-tag" onclick="filterBySkill('data analysis')">Data Analysis</span>
-                            <span class="skill-tag" onclick="filterBySkill('cloud computing')">Cloud Computing</span>
-                            <span class="skill-tag" onclick="filterBySkill('mobile development')">Mobile
-                                Development</span>
-                            <span class="skill-tag" onclick="filterBySkill('devops')">DevOps</span>
+                        <div class="skills-list" id="trendingSkillsList">
+                            <span style="color: var(--gray); font-size: 0.9rem;">Loading trending skills...</span>
                         </div>
                     </div>
                 </div>
@@ -960,53 +879,7 @@
                         </div>
                     </div>
 
-                    <!-- Activity Feed -->
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">Recent Activity</div>
-                        </div>
-                        <div class="activity-feed">
-                            <div class="activity-item">
-                                <div class="post-header">
-                                    <div class="post-avatar"><i class="fas fa-user"></i></div>
-                                    <div>
-                                        <div class="post-user">Namita Shastri</div>
-                                        <div class="post-time">Connected with Yug Patel</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="activity-item" style="margin-top: 10px;">
-                                <div class="post-header">
-                                    <div class="post-avatar"><i class="fas fa-user"></i></div>
-                                    <div>
-                                        <div class="post-user">Jasmeet Khanwani</div>
-                                        <div class="post-time">Joined Web Dev Community</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="activity-item" style="margin-top: 10px;">
-                                <div class="post-header">
-                                    <div class="post-avatar"><i class="fas fa-user"></i></div>
-                                    <div>
-                                        <div class="post-user">Siddhesh Mohite</div>
-                                        <div class="post-time">Added new project</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="activity-item" style="margin-top: 10px;">
-                                <div class="post-header">
-                                    <div class="post-avatar"><i class="fas fa-user"></i></div>
-                                    <div>
-                                        <div class="post-user">Daksh Patel</div>
-                                        <div class="post-time">Updated skills</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <!-- Recent Activity removed for students per requirement -->
                 </div>
             </div>
         </div>

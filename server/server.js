@@ -221,6 +221,17 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Prevent aggressive browser caching on dynamic API routes
+app.use((req, res, next) => {
+    if (req.url.startsWith('/api/')) {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        res.setHeader('Surrogate-Control', 'no-store');
+    }
+    next();
+});
+
 // Fix for ES modules (__dirname equivalent)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -303,12 +314,29 @@ app.get("/api/user/:id", async (req, res) => {
 // Network / Users list with basic skills
 app.get("/api/network", async (req, res) => {
   try {
-    const { rows: users } = await pool.query(`
+    const userId = req.query.userId;
+    let query = `
       SELECT u.id, u.name, u.title, u.department, u.year, u.role, 
       (SELECT string_agg(s.name, ',') FROM skills s WHERE s.user_id = u.id) as skills
       FROM users u
-      LIMIT 100
-    `);
+    `;
+    const params = [];
+    
+    if (userId) {
+      query += `
+        WHERE u.id != $1
+        AND u.id NOT IN (
+          SELECT receiver_id FROM connections WHERE sender_id = $1
+          UNION
+          SELECT sender_id FROM connections WHERE receiver_id = $1
+        )
+      `;
+      params.push(userId);
+    }
+    
+    query += ` LIMIT 100`;
+    
+    const { rows: users } = await pool.query(query, params);
     res.json(users);
   } catch (err) {
     console.error(err);
@@ -371,13 +399,62 @@ app.delete("/api/user/:id/clubs/:clubName", async (req, res) => {
   }
 });
 
+// Get all events
+app.get("/api/events", async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT * FROM events');
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+// Register for an event
+app.post("/api/events/:eventId/register", async (req, res) => {
+  const { userId } = req.body;
+  try {
+    await pool.query('INSERT INTO event_registrations (event_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [req.params.eventId, userId]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+// Request to join project
+app.post("/api/projects/:id/requests", async (req, res) => {
+  const projectId = req.params.id;
+  const { userId, role, comment } = req.body;
+  try {
+    await pool.query('INSERT INTO project_requests (project_id, user_id, role, comment) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING', [projectId, userId, role, comment]);
+    res.json({ success: true });
+  } catch(err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+// Accept request
+app.post("/api/projects/:id/requests/:requestId/accept", async (req, res) => {
+  const { id, requestId } = req.params;
+  try {
+     await pool.query('UPDATE project_requests SET status = $1 WHERE id = $2 AND project_id = $3', ['accepted', requestId, id]);
+     res.json({ success: true });
+  } catch(err) {
+      res.status(500).json({});
+  }
+});
+
 
 // Add Skill
 app.post("/api/user/:id/skills", async (req, res) => {
   const userId = req.params.id;
   const { name, level, category } = req.body;
   try {
-    await pool.query('INSERT INTO skills (user_id, name, level, category) VALUES ($1, $2, $3, $4)', [userId, name, level, category]);
+    // Capitalize the level to match check constraints (Beginner, Intermediate, Advanced)
+    const formattedLevel = level ? level.charAt(0).toUpperCase() + level.slice(1).toLowerCase() : 'Beginner';
+    await pool.query('INSERT INTO skills (user_id, name, level, category) VALUES ($1, $2, $3, $4)', [userId, name, formattedLevel, category]);
     res.json({ success: true });
   } catch (err) {
     console.error(err);
@@ -433,7 +510,7 @@ app.post("/api/projects", async (req, res) => {
   const { owner_id, title, description, tags, github_url } = req.body;
   try {
     const result = await pool.query(
-      'INSERT INTO projects (title, description, tags, owner_id, github_url) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+      'INSERT INTO projects (title, description, skills, user_id, github_url) VALUES ($1, $2, $3, $4, $5) RETURNING id',
       [title, description, tags, owner_id, github_url || null]
     );
     res.json({ success: true, projectId: result.rows[0].id });
@@ -447,7 +524,7 @@ app.post("/api/projects", async (req, res) => {
 app.get("/api/projects", async (req, res) => {
   try {
     const { rows } = await pool.query(`
-      SELECT p.*, (SELECT name FROM users WHERE id = p.owner_id) as owner_name 
+      SELECT p.*, (SELECT name FROM users WHERE id = p.user_id) as owner_name 
       FROM projects p
     `);
     res.json(rows);
@@ -463,10 +540,10 @@ app.post("/ai/skills", async (req, res) => {
   try {
     const { skills } = req.body;
 
-    if (!genAI) {
+    if (!genAI || !skills || skills.length === 0) {
       return res.json({
         success: true,
-        suggestions: `Mock suggestions because GEMINI_API_KEY not set. Skills: ${skills.map(s => s.name + "(" + s.level + ")").join(", ")}`
+        suggestions: `Mock suggestions because GEMINI_API_KEY not set or skills empty. Skills: ${(skills || []).map(s => s.name + "(" + s.level + ")").join(", ")}`
       });
     }
 
@@ -490,7 +567,90 @@ ${skills.map(s => `• ${s.name} (${s.level})`).join("\n")}
 
   } catch (error) {
     console.error("AI ERROR:", error);
-    res.status(500).json({ success: false, error: "AI backend error" });
+    // Fallback to mock on fetch failure to prevent breaking UI
+    const { skills } = req.body;
+    res.json({ 
+      success: true, 
+      suggestions: `Fetch failed, providing fallback mock suggestions. Explore advancing your core coding skills! Skills provided: ${(skills || []).map(s => s.name).join(", ")}` 
+    });
+  }
+});
+
+// Network API Endpoints
+
+// Get Connection Requests
+app.get("/api/network/requests/:userId", async (req, res) => {
+  const userId = req.params.userId;
+  try {
+    // Incoming requests (where this user is the receiver)
+    const incomingRes = await pool.query(`
+      SELECT c.id as connection_id, u.id as user_id, u.name, u.department, u.role, u.year, c.status
+      FROM connections c
+      JOIN users u ON c.sender_id = u.id
+      WHERE c.receiver_id = $1 AND c.status = 'pending'
+    `, [userId]);
+
+    // Sent requests (where this user is the sender)
+    const sentRes = await pool.query(`
+      SELECT c.id as connection_id, u.id as user_id, u.name, u.department, u.role, u.year, c.status
+      FROM connections c
+      JOIN users u ON c.receiver_id = u.id
+      WHERE c.sender_id = $1 AND c.status = 'pending'
+    `, [userId]);
+
+    res.json({ success: true, incoming: incomingRes.rows, sent: sentRes.rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+// Send Connection Request
+app.post("/api/network/connect", async (req, res) => {
+  const { sender_id, receiver_id } = req.body;
+  try {
+    if (sender_id === receiver_id) {
+       return res.status(400).json({ error: "Cannot connect to yourself" });
+    }
+    await pool.query(
+      'INSERT INTO connections (sender_id, receiver_id, status) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',
+      [sender_id, receiver_id, 'pending']
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+// Accept/Reject Connection Request
+app.put("/api/network/requests/:connectionId", async (req, res) => {
+  const connectionId = req.params.connectionId;
+  const { action } = req.body; // 'accepted' or 'rejected'
+  try {
+    if (action !== 'accepted' && action !== 'rejected') return res.status(400).json({});
+    await pool.query('UPDATE connections SET status = $1 WHERE id = $2', [action, connectionId]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+// Get Trending Skills across network
+app.get("/api/network/trending-skills", async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT LOWER(name) as skill_name, COUNT(*) as count
+      FROM skills
+      GROUP BY LOWER(name)
+      ORDER BY count DESC
+      LIMIT 10
+    `);
+    res.json({ success: true, trending: rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error" });
   }
 });
 

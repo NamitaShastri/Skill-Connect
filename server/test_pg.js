@@ -1,13 +1,54 @@
-import db from './db.js';
-import fs from 'fs';
+import pg from 'pg';
+const { Pool } = pg;
+const pool = new Pool({
+  user: 'postgres',
+  host: 'localhost',
+  database: 'skillconnect',
+  password: 'ishan24',
+  port: 5432,
+});
 
 async function run() {
   try {
-    const res = await db.query('SELECT COUNT(*) FROM users');
-    fs.writeFileSync('pg_test_out.txt', 'DB SUCCESS! Users count: ' + res.rows[0].count, 'utf8');
-  } catch (err) {
-    fs.writeFileSync('pg_test_out.txt', 'DB ERROR: ' + err.message, 'utf8');
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS events (
+          id SERIAL PRIMARY KEY,
+          title VARCHAR(255) NOT NULL,
+          date TIMESTAMP NOT NULL,
+          time VARCHAR(50),
+          description TEXT
+      );
+
+      CREATE TABLE IF NOT EXISTS event_registrations (
+          id SERIAL PRIMARY KEY,
+          event_id INTEGER REFERENCES events(id),
+          user_id INTEGER REFERENCES users(id),
+          UNIQUE(event_id, user_id)
+      );
+
+      INSERT INTO events (title, date, time, description) VALUES
+      ('AI & ML Workshop', '2026-12-10 10:00:00', '10:00 AM - 1:00 PM', 'Learn AI basics'),
+      ('Git & GitHub Mastery', '2026-12-18 14:00:00', '2:00 PM - 5:00 PM', 'Master SVC systems')
+      ON CONFLICT DO NOTHING;
+
+      CREATE TABLE IF NOT EXISTS project_requests (
+          id SERIAL PRIMARY KEY,
+          project_id VARCHAR(50),
+          user_id INTEGER REFERENCES users(id),
+          role VARCHAR(50),
+          comment TEXT,
+          status VARCHAR(20) DEFAULT 'pending',
+          UNIQUE(project_id, user_id)
+      );
+
+      SELECT setval('skills_id_seq', COALESCE((SELECT MAX(id) FROM skills), 1));
+      SELECT setval('projects_id_seq', COALESCE((SELECT MAX(id) FROM projects), 1));
+    `);
+    console.log("DB sync OK");
+  } catch(e) {
+    console.error("DB SYNC ERROR:", e.message);
+  } finally {
+    pool.end();
   }
-  process.exit(0);
 }
-run();
+await run();

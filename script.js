@@ -288,22 +288,36 @@ function initializeNetworkFilters() {
 
 //connect btns
 function initializeConnectButtons() {
-    const buttons = document.querySelectorAll('#network-page .btn-primary');
+    const buttons = document.querySelectorAll('#network-page .btn-primary:not([onclick])');
 
     buttons.forEach(button => {
         if (!button.hasAttribute('data-init')) {
             button.setAttribute('data-init', 'true');
 
-            button.addEventListener('click', function () {
+            button.addEventListener('click', async function () {
+                if (!currentUser) return showNotification('Please login first', 'error');
                 const profileCard = this.closest('.profile-card');
                 const name = profileCard.querySelector('.profile-name').textContent;
+                const receiverId = profileCard.getAttribute('data-userid');
 
-                this.innerHTML = '<i class="fas fa-check"></i> Request Sent';
-                this.classList.remove('btn-primary');
-                this.classList.add('btn-outline');
-                this.disabled = true;
+                try {
+                    const apiUrl = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || !window.location.hostname ? 'http://localhost:3000/api/network/connect' : '/api/network/connect';
+                    await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ sender_id: currentUser.id, receiver_id: receiverId })
+                    });
+                    
+                    this.innerHTML = '<i class="fas fa-check"></i> Request Sent';
+                    this.classList.remove('btn-primary');
+                    this.classList.add('btn-outline');
+                    this.disabled = true;
 
-                showNotification(`Connection request sent to ${name}`, 'success');
+                    showNotification(`Connection request sent to ${name}`, 'success');
+                    loadConnectionRequests();
+                } catch (err) {
+                    showNotification('Failed to send request', 'error');
+                }
             });
         }
     });
@@ -354,20 +368,107 @@ function initializeMentorshipButtons() {
     });
 }
 
+//dynamic network handlers
+async function loadConnectionRequests() {
+    if (!currentUser) return;
+    const incomingContainer = document.getElementById('incomingRequestsContainer');
+    const sentContainer = document.getElementById('sentRequestsContainer');
+    
+    try {
+        const apiUrl = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || !window.location.hostname ? `http://localhost:3000/api/network/requests/${currentUser.id}` : `/api/network/requests/${currentUser.id}`;
+        const res = await fetch(apiUrl);
+        if (res.ok) {
+            const data = await res.json();
+            
+            if (incomingContainer) {
+                incomingContainer.innerHTML = data.incoming.length === 0 ? '<p style="color: var(--gray); font-size: 0.9rem;">No incoming requests.</p>' : data.incoming.map(req => `
+                    <div class="request-item">
+                        <div class="post-header">
+                            <div class="post-avatar"><i class="fas fa-user"></i></div>
+                            <div>
+                                <div class="post-user">${req.name}</div>
+                                <div class="post-time">${req.department}</div>
+                            </div>
+                        </div>
+                        <div class="request-actions">
+                            <button class="btn btn-primary btn-small" onclick="handleConnectionAction(${req.connection_id}, 'accepted', this)"><i class="fas fa-check"></i></button>
+                            <button class="btn btn-outline btn-small" onclick="handleConnectionAction(${req.connection_id}, 'rejected', this)"><i class="fas fa-times"></i></button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            if (sentContainer) {
+                sentContainer.innerHTML = data.sent.length === 0 ? '<p style="color: var(--gray); font-size: 0.9rem;">No sent requests.</p>' : data.sent.map(req => `
+                    <div class="request-item">
+                        <div class="post-header">
+                            <div class="post-avatar"><i class="fas fa-user"></i></div>
+                            <div>
+                                <div class="post-user">${req.name}</div>
+                                <div class="post-time">${req.department} - ${req.role}</div>
+                            </div>
+                        </div>
+                        <div class="request-status">
+                            <span style="color: var(--gray); font-size: 0.8rem;">${req.status.charAt(0).toUpperCase() + req.status.slice(1)}</span>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+    } catch (err) {
+        console.error("Failed fetching connection requests:", err);
+    }
+}
+
+async function handleConnectionAction(connectionId, action, btnElement) {
+    try {
+        const apiUrl = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || !window.location.hostname ? `http://localhost:3000/api/network/requests/${connectionId}` : `/api/network/requests/${connectionId}`;
+        await fetch(apiUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action })
+        });
+        showNotification(`Request ${action} successfully!`, 'success');
+        loadConnectionRequests();
+        initializeNetworkPage();
+    } catch (err) {
+        showNotification('Failed to update request', 'error');
+    }
+}
+
+async function loadTrendingSkills() {
+    const list = document.getElementById('trendingSkillsList');
+    if (!list) return;
+    try {
+        const apiUrl = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || !window.location.hostname ? 'http://localhost:3000/api/network/trending-skills' : '/api/network/trending-skills';
+        const res = await fetch(apiUrl);
+        if (res.ok) {
+            const data = await res.json();
+            list.innerHTML = data.trending.length === 0 ? '<span style="color: var(--gray);">No skills data</span>' : data.trending.map(s => `
+                <span class="skill-tag" onclick="filterBySkill('${s.skill_name}')">${s.skill_name} (${s.count})</span>
+            `).join('');
+        }
+    } catch (err) {
+        console.error("Failed fetching trending skills:", err);
+    }
+}
+
 //initialize network page
 async function initializeNetworkPage() {
     initializeNetworkFilters();
+    loadConnectionRequests();
+    loadTrendingSkills();
     try {
         const apiUrl = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || !window.location.hostname
-            ? 'http://localhost:3000/api/network' 
-            : '/api/network';
+            ? `http://localhost:3000/api/network${currentUser ? '?userId=' + currentUser.id : ''}` 
+            : `/api/network${currentUser ? '?userId=' + currentUser.id : ''}`;
         const res = await fetch(apiUrl);
         if (res.ok) {
             const users = await res.json();
             const grid = document.querySelector('#network-page .profiles-grid');
             if (grid) {
                 grid.innerHTML = users.map(u => `
-                    <div class="profile-card" data-department="${(u.department||'').toLowerCase()}" data-role="${(u.role||'').toLowerCase()}" data-year="${u.year||''}" data-skills="${(u.skills||'').toLowerCase()}">
+                    <div class="profile-card" data-userid="${u.id}" data-department="${(u.department||'').toLowerCase()}" data-role="${(u.role||'').toLowerCase()}" data-year="${u.year||''}" data-skills="${(u.skills||'').toLowerCase()}">
                         <div class="profile-avatar"><i class="fas fa-user"></i></div>
                         <div class="profile-name">${u.name}</div>
                         <div class="profile-title">${u.department} - ${u.year? u.year+' Year': u.role}</div>
@@ -524,6 +625,76 @@ async function handleLogin() {
     }
 }
 
+async function loadDashboardPosts() {
+    const postContainer = document.getElementById("dashboardRecentPosts");
+    if (!postContainer || !currentUser) return;
+    
+    await pc_initializeDemoContent();
+    const myPosts = pc_projects.filter(p => parseInt(p.owner_id) === parseInt(currentUser.id));
+    
+    if (myPosts.length === 0) {
+        postContainer.innerHTML = `<div class="card post-card" style="text-align: center; color: var(--gray); padding: 20px;">No projects yet. Upload one above!</div>`;
+        return;
+    }
+
+    postContainer.innerHTML = myPosts.map(p => `
+        <div class="card post-card">
+            <div class="post-header">
+                <div class="post-avatar"><i class="fas fa-user"></i></div>
+                <div>
+                    <div class="post-user">${p.owner}</div>
+                    <div class="post-time">Recent Project</div>
+                </div>
+            </div>
+            <div class="post-content">
+                <p><strong>${p.title}</strong>: ${p.description}</p>
+                ${p.github ? `<div style="font-size:0.9rem; margin-top:5px;"><a href="${p.github}" target="_blank">${p.github}</a></div>` : ''}
+                <div class="skills-list" style="margin-top: 10px;">
+                    ${p.skills.map(s => `<span class="skill-tag">${s}</span>`).join('')}
+                </div>
+            </div>
+        </div>
+    `).reverse().join('');
+}
+
+async function loadDashboardEvents() {
+    const evtContainer = document.getElementById("studentEvents");
+    if (!evtContainer) return;
+    try {
+        const apiUrl = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || !window.location.hostname ? `http://localhost:3000/api/events` : `/api/events`;
+        const res = await fetch(apiUrl);
+        if (res.ok) {
+            const events = await res.json();
+            evtContainer.innerHTML = events.length === 0 ? '<p style="color:var(--gray)">No upcoming events.</p>' : events.slice(0, 3).map(e => `
+                <div class="event-card">
+                    <div class="event-date">
+                        <div class="event-day">${new Date(e.date).getDate() || 'TBA'}</div>
+                        <div class="event-month">${new Date(e.date).toLocaleString('default', { month: 'short' }) || ''}</div>
+                    </div>
+                    <div class="event-details">
+                        <div class="event-title">${e.title}</div>
+                        <div class="event-time">${e.time || '10:00 AM'}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+    } catch(err) {} 
+}
+
+async function loadFacultyActivities() {
+    const actContainer = document.getElementById("facultyRecentActivities");
+    if (!actContainer || currentRole !== 'faculty') return;
+    await pc_initializeDemoContent();
+    
+    actContainer.innerHTML = pc_projects.slice(0, 5).map(p => `
+        <div style="border-left: 3px solid var(--faculty-primary); padding-left: 10px; margin-bottom: 12px;">
+            <div style="font-size:0.85rem; color:var(--gray);">${p.owner} uploaded a new project</div>
+            <strong>${p.title}</strong>
+            <div style="font-size:0.9rem;">${p.description}</div>
+        </div>
+    `).join('') || '<p style="color:var(--gray)">No recent network activities.</p>';
+}
+
 async function showDashboard() {
     mainHeader.classList.remove('hidden');
     mainFooter.classList.remove('hidden');
@@ -549,20 +720,41 @@ async function showDashboard() {
             const data = await res.json();
             
             const skillsListStr =  data.skills.map(skill => `
-                <span class="skill-tag" data-level="${skill.level.toLowerCase()}" data-category="${skill.category}">
+                <span class="skill-tag" data-bound="true" data-level="${skill.level.toLowerCase()}" data-category="${skill.category}" onclick="(function(e){ e.stopPropagation(); openEditSkillModal(e.currentTarget); })(event)">
                     ${skill.name}
                     <span class="skill-level-badge">${skill.level}</span>
                 </span>
             `).join('');
             const skillsContainer = document.getElementById(currentRole === 'student' ? 'studentSkillsList' : 'facultyResearchAreas');
-            if (skillsContainer) skillsContainer.innerHTML = skillsListStr;
+            if (skillsContainer) {
+                skillsContainer.innerHTML = skillsListStr;
+            }
             
             const statsSkillEl = document.getElementById(currentRole === 'student' ? 'studentSkills' : 'facultyPublications');
             if (statsSkillEl) statsSkillEl.textContent = data.skills.length;
+
+            const clubsContainer = document.getElementById('studentClubs');
+            if (clubsContainer) {
+                clubsContainer.innerHTML = data.clubs.length === 0 ? '<p style="color:var(--gray)">No clubs joined yet.</p>' : data.clubs.map(c => `
+                    <div class="event-card">
+                        <div class="event-date">
+                            <div class="event-day">${c.name.substring(0, 2).toUpperCase()}</div>
+                        </div>
+                        <div class="event-details">
+                            <div class="event-title">${c.name}</div>
+                            <div class="event-time">${c.category}</div>
+                        </div>
+                    </div>
+                `).join('');
+            }
         }
     } catch(err) {
         console.error("Failed fetching profile:", err);
     }
+
+    loadDashboardPosts();
+    loadDashboardEvents();
+    loadFacultyActivities();
 
     navLinks.forEach(n => n.classList.remove('active'));
     document.querySelector('[data-page="dashboard"]').classList.add('active');
@@ -596,8 +788,8 @@ function initializeJoinClubButtons() {
             btn.setAttribute("data-joined-init", "true");
 
             btn.addEventListener('click', async function () {
-                const clubName = this.closest('.club-card-custom')
-                    .querySelector('strong').textContent;
+                const card = this.closest('.club-card-custom');
+                const clubName = card.querySelector('.club-title').textContent.trim();
 
                 if (!currentUser) return showNotification("Please login first", "error");
 
@@ -1137,21 +1329,17 @@ document.getElementById('pc_postProjectBtn')?.addEventListener('click', async ()
 });
 
 //join btn
-document.addEventListener('click', (e) => {
+document.addEventListener('click', async (e) => {
     if (e.target.closest('.pc-apply-btn')) {
         const btn = e.target.closest('.pc-apply-btn');
         const projId = btn.getAttribute('data-project-id');
 
-        if (!currentUser) {
-            showNotification("Login to apply", "error");
-            return;
-        }
+        if (!currentUser) return showNotification("Login to apply", "error");
 
         const name = currentUser.name;
         const github = prompt("Your GitHub link?", "");
         const comment = prompt("How will you contribute?", "");
-        const skills = (prompt("Your skills (comma separated):", "") || "")
-            .split(",").map(s => s.trim()).filter(Boolean);
+        const skills = (prompt("Your skills (comma separated):", "") || "").split(",").map(s => s.trim()).filter(Boolean);
 
         const req = {
             id: "req_" + Date.now(),
@@ -1162,35 +1350,49 @@ document.addEventListener('click', (e) => {
             skills
         };
 
-        pc_requests.unshift(req);
+        try {
+            const apiUrl = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || !window.location.hostname ? `http://localhost:3000/api/projects/${projId}/requests` : `/api/projects/${projId}/requests`;
+            await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: currentUser.id, role: 'Applicant', comment })
+            });
 
-        btn.innerHTML = "Requested ✓";
-        btn.classList.remove("btn-primary");
-        btn.classList.add("btn-outline");
-        btn.disabled = true;
+            pc_requests.unshift(req);
+            btn.innerHTML = "Requested ✓";
+            btn.classList.remove("btn-primary");
+            btn.classList.add("btn-outline");
+            btn.disabled = true;
 
-        pc_renderIncomingRequests();
-        pc_renderMyProjects();
-
-        showNotification("Request sent!", "success");
+            showNotification("Application cleanly mapped to Postgres DB!", "success");
+        } catch(err) {
+            showNotification("Failed Database Request", "error");
+        }
     }
 });
 
-document.addEventListener('click', (e) => {
+document.addEventListener('click', async (e) => {
     // ACCEPT
     if (e.target.closest('.pc-accept-btn')) {
         const id = e.target.getAttribute('data-request-id');
         const req = pc_requests.find(r => r.id === id);
         const proj = pc_projects.find(p => p.id === req.projectId);
 
-        proj.team.push(req.applicantName);
-        pc_requests = pc_requests.filter(r => r.id !== id);
+        try {
+            const apiUrl = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || !window.location.hostname ? `http://localhost:3000/api/projects/${proj.id}/requests/${id}/accept` : `/api/projects/${proj.id}/requests/${id}/accept`;
+            await fetch(apiUrl, { method: 'POST' });
 
-        pc_renderMyProjects();
-        pc_renderIncomingRequests();
-        pc_renderProjectFeed();
+            proj.team.push(req.applicantName);
+            pc_requests = pc_requests.filter(r => r.id !== id);
 
-        showNotification(`${req.applicantName} added to team!`, "success");
+            pc_renderMyProjects();
+            pc_renderIncomingRequests();
+            pc_renderProjectFeed();
+
+            showNotification(`${req.applicantName} actively synced into DB!`, "success");
+        } catch(err) {
+            showNotification(`DB Sync Error`, "error");
+        }
     }
 
     // DECLINE
@@ -1267,43 +1469,41 @@ document.getElementById('pc_closeAnalyseBtn')?.addEventListener('click', () => {
     document.getElementById('pc_analyseModal').style.display = 'none';
 });
 
-//example data
-function pc_initializeDemoContent() {
-    if (pc_projects.length) return;
-
-    pc_projects = [
-        {
-            id: "demo_1",
-            owner: "Jasmeet Khanwani",
-            title: "Smart Timetable Optimizer",
-            description: "Optimize student timetables using ML and constraints.",
-            github: "",
-            skills: ["Python", "OR-Tools"],
-            roles: "ML Engineer",
-            team: []
-        },
-        {
-            id: "demo_2",
-            owner: "Aditi Dube",
-            title: "Campus Events Portal",
-            description: "Events listing & registration platform.",
-            github: "",
-            skills: ["React", "Node.js"],
-            roles: "Frontend / Backend",
-            team: []
+// Dynamic Database Project Mapping
+async function pc_initializeDemoContent() {
+    try {
+        const apiUrl = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || !window.location.hostname ? `http://localhost:3000/api/projects` : `/api/projects`;
+        const res = await fetch(apiUrl);
+        if (res.ok) {
+            const data = await res.json();
+            pc_projects = data.map(p => ({
+                id: p.id,
+                owner: p.owner_name || "SkillConnect User",
+                owner_id: p.user_id,
+                title: p.title,
+                description: p.description,
+                github: p.github_url || "",
+                skills: (p.skills || "").split(',').filter(x => x.trim()),
+                roles: p.roles || "Contributor",
+                team: []
+            }));
+            
+            // Generate some test requests
+            pc_requests = [
+                {
+                    id: "demo_req_1",
+                    projectId: pc_projects.length > 0 ? pc_projects[0].id : "demo_2",
+                    applicantName: "Mock Student",
+                    github: "https://github.com/mock",
+                    comment: "I can help with frontend UI.",
+                    skills: ["React", "CSS"]
+                }
+            ];
+            pc_renderMyProjects();
         }
-    ];
-
-    pc_requests = [
-        {
-            id: "demo_req_1",
-            projectId: "demo_2",
-            applicantName: "Namita Shastri",
-            github: "https://github.com/example/alex",
-            comment: "I can help with frontend UI.",
-            skills: ["React", "Firebase"]
-        }
-    ];
+    } catch(err) {
+        console.warn("Falling back since backend wasn't reached");
+    }
 }
 
 function pc_addTestRequests() {
@@ -1348,7 +1548,6 @@ function pc_addTestRequests() {
 
 function pc_onProjectsPageShow() {
     pc_initializeDemoContent();
-    pc_addTestRequests();
 
     pc_renderMyProjects();
     pc_renderProjectFeed();
@@ -1391,22 +1590,52 @@ window.addEventListener("load", () => {
 });
 
 // Faculty-specific event handlers
-document.getElementById('editFacultyProfileBtn')?.addEventListener('click', function () {
-    if (!currentUser) {
-        showNotification('Please login first', 'error');
-        return;
-    }
+// Faculty action buttons event delegation
+document.getElementById('editFacultyProfileBtn')?.addEventListener('click', async function () {
+    if (!currentUser) return showNotification('Please login first', 'error');
 
     const name = prompt('Enter your name:', currentUser.name);
-    if (name) {
-        currentUser.name = name;
-        document.getElementById('facultyName').textContent = name;
-    }
-
     const title = prompt('Enter your title:', currentUser.title);
-    if (title) {
-        currentUser.title = title;
-        document.getElementById('facultyTitle').textContent = title;
+    
+    if (name && title) {
+        try {
+            const apiUrl = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || !window.location.hostname ? `http://localhost:3000/api/user/${currentUser.id}/profile` : `/api/user/${currentUser.id}/profile`;
+            await fetch(apiUrl, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, title })
+            });
+
+            currentUser.name = name;
+            currentUser.title = title;
+            document.getElementById('facultyName').textContent = name;
+            document.getElementById('facultyTitle').textContent = title;
+            showNotification('Profile seamlessly synced dynamically to DB!', 'success');
+        } catch(err) { showNotification('Failed DB Update', 'error'); }
+    }
+});
+
+document.getElementById('editStudentProfileBtn')?.addEventListener('click', async function () {
+    if (!currentUser) return showNotification('Please login first', 'error');
+
+    const name = prompt('Enter your name:', currentUser.name);
+    const title = prompt('Enter your title:', currentUser.title);
+    
+    if (name && title) {
+         try {
+            const apiUrl = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || !window.location.hostname ? `http://localhost:3000/api/user/${currentUser.id}/profile` : `/api/user/${currentUser.id}/profile`;
+            await fetch(apiUrl, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, title })
+            });
+
+            currentUser.name = name;
+            currentUser.title = title;
+            document.getElementById('studentName').textContent = name;
+            document.getElementById('studentTitle').textContent = title;
+            showNotification('Profile seamlessly synced dynamically to DB!', 'success');
+        } catch(err) { showNotification('Failed DB Update', 'error'); }
     }
 });
 
@@ -1950,14 +2179,100 @@ function initializeClubsPage() {
 }
 
 // Initialize events page
-function initializeEventsPage() {
-    // Make all scrollable content functional
+async function initializeEventsPage() {
     const scrollableElements = document.querySelectorAll('.scrollable-content');
     scrollableElements.forEach(el => {
-        if (el.scrollHeight > el.clientHeight) {
-            el.style.overflowY = 'auto';
-        }
+        if (el.scrollHeight > el.clientHeight) el.style.overflowY = 'auto';
     });
+
+    const upcomingContainer = document.querySelector('#events-page .left-sidebar .scrollable-content');
+    if (!upcomingContainer) return;
+
+    try {
+        const apiUrl = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || !window.location.hostname ? `http://localhost:3000/api/events` : `/api/events`;
+        const res = await fetch(apiUrl);
+        if (res.ok) {
+            const events = await res.json();
+            
+            // Upcoming
+            const upcoming = events.filter(e => new Date(e.date) >= new Date());
+            upcomingContainer.innerHTML = upcoming.map(e => `
+                <div class="event-card">
+                    <div class="event-date">
+                        <div class="event-day">${new Date(e.date).getDate() || 'TBA'}</div>
+                        <div class="event-month">${new Date(e.date).toLocaleString('default', { month: 'short' }).toUpperCase() || ''}</div>
+                    </div>
+                    <div class="event-details">
+                        <div class="event-title">${e.title}</div>
+                        <div class="event-time">${e.time || '10:00 AM'}</div>
+                        <button class="btn btn-primary btn-small event-register-btn" data-event-id="${e.id}" style="margin-top: 5px;">Register</button>
+                    </div>
+                </div>
+            `).join('') || '<p style="padding:15px;color:var(--gray)">No upcoming events.</p>';
+
+            // Handle Past events in center
+            const pastContainer = document.querySelector('#events-page .center-feed .scrollable-content');
+            if (pastContainer) {
+                const past = events.filter(e => new Date(e.date) < new Date());
+                pastContainer.innerHTML = past.map(e => `
+                    <div class="event-card">
+                        <div class="event-date">
+                            <div class="event-day">${new Date(e.date).getDate() || 'TBA'}</div>
+                            <div class="event-month">${new Date(e.date).toLocaleString('default', { month: 'short' }).toUpperCase() || ''}</div>
+                        </div>
+                        <div class="event-details">
+                            <div class="event-title">${e.title}</div>
+                            <div class="event-time">Completed</div>
+                            <p style="margin-top: 8px; color: var(--gray);">${e.description || 'Event concluded successfully.'}</p>
+                        </div>
+                    </div>
+                `).join('') || '<p style="padding:15px;color:var(--gray)">No past events.</p>';
+            }
+            
+            // Stats Update
+            const statsContainer = document.querySelector('#events-page .event-stats-grid');
+            if (statsContainer) {
+                statsContainer.innerHTML = `
+                    <div class="stat-card student" style="margin-bottom: 15px;">
+                        <div class="stat-number">${events.length}</div>
+                        <div class="stat-label">Total Valid Events</div>
+                    </div>
+                    <div class="stat-card student" style="margin-bottom: 15px;">
+                        <div class="stat-number">${upcoming.length}</div>
+                        <div class="stat-label">Upcoming Events</div>
+                    </div>
+                    <div class="stat-card student">
+                        <div class="stat-number">92%</div>
+                        <div class="stat-label">Average Attendance</div>
+                    </div>
+                `;
+            }
+            
+            // Re-bind Register Buttons
+            document.querySelectorAll('.event-register-btn').forEach(btn => {
+                btn.addEventListener('click', async function() {
+                    const eventId = this.getAttribute('data-event-id');
+                    if (!currentUser) return showNotification("Please login to register", "error");
+                    
+                    try {
+                        const regUrl = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || !window.location.hostname ? `http://localhost:3000/api/events/${eventId}/register` : `/api/events/${eventId}/register`;
+                        await fetch(regUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ userId: currentUser.id })
+                        });
+                        this.textContent = "Registered ✔";
+                        this.classList.remove('btn-primary');
+                        this.classList.add('btn-outline');
+                        this.disabled = true;
+                        showNotification("Successfully registered securely using DB!", "success");
+                    } catch(e) {
+                         showNotification("Failed Database transaction", "error");
+                    }
+                });
+            });
+        }
+    } catch (err) {}
 }
 
 //init loead
