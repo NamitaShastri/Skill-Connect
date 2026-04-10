@@ -25,7 +25,7 @@
                         <li><a href="#" class="nav-link" data-page="clubs">Clubs</a></li>
                         <li><a href="#" class="nav-link" data-page="events">Events</a></li>
                         <li><a href="#" class="nav-link" data-page="projects">Projects collaboration</a></li>
-                        <li><a href="#" class="nav-link" data-page="skill-summary">Skill Summary</a></li>
+                        <!-- <li><a href="#" class="nav-link" data-page="skill-summary">Skill Summary</a></li> -->
                     </ul>
                 </nav>
                 <div class="auth-buttons">
@@ -59,11 +59,11 @@
                 <button class="btn btn-primary" style="width: 100%; margin-bottom: 20px;" id="submitLogin">Log
                     In</button>
 
-                <div style="text-align: center;">
+                <!-- <div style="text-align: center;">
                     <p>Demo Accounts:</p>
                     <p><strong>Student:</strong> student@skillconnect.edu / password</p>
                     <p><strong>faculty:</strong> faculty@skillconnect.edu / password</p>
-                </div>
+                </div> -->
             </div>
         </div>
     </div>
@@ -82,6 +82,9 @@
                         </div>
                         <div class="profile-name" id="studentName">Student User</div>
                         <div class="profile-title" id="studentTitle">Computer Science Student</div>
+                        <div class="phone-number" id="phone_no">Phone number:</div>
+                        <div class="user-email" id="user_email">Email:</div>
+                        <div class="year" id="year">Year:</div>
                         <div class="profile-stats">
                             <div class="stat">
                                 <div class="stat-value" id="studentConnections">12</div>
@@ -153,6 +156,181 @@
 
                     </div>
 
+                    
+                </div>
+
+                <!-- Center Feed -->
+                <div class="center-feed">
+                    <div class="card project-status-card">
+                        <div class="card-header">
+                            <div class="card-title">Project Status</div>
+                        </div>
+                        <div class="project-status-list">
+                            <div class="status-item">
+                                <div class="status-info">
+                                    <span class="project-name">AI Learning Assistant</span>
+                                    <span class="status-badge in-progress">In Progress</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress" style="width: 75%"></div>
+                                </div>
+                                <div class="status-meta">Last updated: 2 days ago</div>
+                            </div>
+                            <div class="status-item">
+                                <div class="status-info">
+                                    <span class="project-name">Smart Campus Navigation</span>
+                                    <span class="status-badge pending">Pending Review</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress" style="width: 40%"></div>
+                                </div>
+                                <div class="status-meta">Last updated: 1 week ago</div>
+                            </div>
+                            <div class="status-item">
+                                <div class="status-info">
+                                    <span class="project-name">Portfolio Website</span>
+                                    <span class="status-badge completed">Completed</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress" style="width: 100%"></div>
+                                </div>
+                                <div class="status-meta">Completed on: Dec 10, 2024</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card post-card">
+                        <div class="post-header">
+                            <div class="post-avatar">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div>
+                                <div class="post-user">Namita Shastri</div>
+                                <div class="post-time">2 hours ago</div>
+                            </div>
+                        </div>
+                        <div class="post-content">
+                            <p>Just completed my personal-portfolio portfolio website! Check out the GitHub repository
+                                for the code.
+                            </p>
+                            <div class="repo-card" style="margin-top: 10px;">
+                                <div class="repo-header">
+                                    <div class="repo-name">react-portfolio</div>
+                                    <div class="repo-stats">
+                                        <span><i class="fas fa-star"></i> 24</span>
+                                        <span><i class="fas fa-code-branch"></i> 5</span>
+                                    </div>
+                                </div>
+                                <p>Personal portfolio website built with HTML and styled-components</p>
+                                <div class="skills-list" style="margin-top: 10px;">
+                                    <span class="skill-tag">HTML</span>
+                                    <span class="skill-tag">JavaScript</span>
+                                    <span class="skill-tag">CSS</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="post-actions">
+                            <div class="post-action"><i class="far fa-thumbs-up"></i> Like</div>
+                            <div class="post-action"><i class="far fa-comment"></i> Comment</div>
+                            <div class="post-action"><i class="far fa-share-square"></i> Share</div>
+                        </div>
+                    </div>
+
+                     <div class="card post-card">
+                        <div class="post-header">
+                            <div class="post-avatar">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div>
+                                <div class="post-user">Namita Shastri</div>
+                                <div class="post-time">4 days ago</div>
+                            </div>
+                        </div>
+                        <div class="post-content">
+                            <p>Tarined my first Ai model using algorithms.
+                            </p>
+                            <div class="repo-card" style="margin-top: 10px;">
+                                <div class="repo-header">
+                                    <div class="repo-name">Trained an AI model</div>
+                                    <div class="repo-stats">
+                                        <span><i class="fas fa-star"></i> 24</span>
+                                        <span><i class="fas fa-code-branch"></i> 5</span>
+                                    </div>
+                                </div>
+                                <p>Trained an AI model using machine learning algorithms.</p>
+                                <div class="skills-list" style="margin-top: 10px;">
+                                    <span class="skill-tag">AI</span>
+                                    <span class="skill-tag">Machine Learning</span>
+                                    <span class="skill-tag">Python</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="post-actions">
+                            <div class="post-action"><i class="far fa-thumbs-up"></i> Like</div>
+                            <div class="post-action"><i class="far fa-comment"></i> Comment</div>
+                            <div class="post-action"><i class="far fa-share-square"></i> Share</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Sidebar -->
+                <div class="right-sidebar">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">My Clubs</div>
+                        </div>
+                        <div id="studentClubs">
+                            <div class="event-card">
+                                <div class="event-date">
+                                    <div class="event-day">CS</div>
+                                </div>
+                                <div class="event-details">
+                                    <div class="event-title">Computer Science Club</div>
+                                    <div class="event-time">Member since Oct 2023</div>
+                                </div>
+                            </div>
+                            <div class="event-card">
+                                <div class="event-date">
+                                    <div class="event-day">AI</div>
+                                </div>
+                                <div class="event-details">
+                                    <div class="event-title">AI & Robotics Club</div>
+                                    <div class="event-time">Member since Sep 2023</div>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="btn btn-outline" style="width: 100%; margin-top: 10px;" id="exploreClubsBtn">
+                            Explore Clubs
+                        </button>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">Upcoming Events</div>
+                        </div>
+                        <div id="studentEvents">
+                            <div class="event-card">
+                                <div class="event-date">
+                                    <div class="event-day">10</div>
+                                    <div class="event-month">DEC</div>
+                                </div>
+                                <div class="event-details">
+                                    <div class="event-title">AI & ML Workshop</div>
+                                    <div class="event-time">10:00 AM - 1:00 PM</div>
+                                </div>
+                            </div>
+                            <div class="event-card">
+                                <div class="event-date">
+                                    <div class="event-day">18</div>
+                                    <div class="event-month">DEC</div>
+                                </div>
+                                <div class="event-details">
+                                    <div class="event-title">Git & GitHub Mastery</div>
+                                    <div class="event-time">2:00 PM - 5:00 PM</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <div class="card">
                         <div class="card-header">
                             <div class="card-title">GitHub Analysis</div>
@@ -179,21 +357,137 @@
                         </button>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Faculty Dashboard -->
+    <div class="page" id="faculty-dashboard">
+        <div class="container faculty-dashboard">
+            <h1 style="margin-bottom: 30px; color: var(--faculty-primary);">Faculty Dashboard</h1>
+            <div class="main-content fade-in">
+                <!-- Left Sidebar - Profile -->
+                <div class="left-sidebar">
+                    <div class="card profile-card">
+                        <div class="profile-avatar">
+                            <i class="fas fa-user-graduate"></i>
+                        </div>
+                        <div class="profile-name" id="studentName">Mrs. Prachi Rajput</div>
+                        <div class="profile-title" id="studentTitle">Head of Department of Dip. CSE</div>
+                        <div class="phone-number" id="phone_no">Phone number:</div>
+                        <div class="user-email" id="user_email">Email:</div>
+                        <div class="year" id="year">Year:</div>
+                        <div class="profile-stats">
+                            <div class="stat">
+                                <div class="stat-value" id="studentConnections">12</div>
+                                <div class="stat-label">Connections</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-value" id="studentProjects">5</div>
+                                <div class="stat-label">Projects</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-value" id="studentSkills">8</div>
+                                <div class="stat-label">Skills</div>
+                            </div>
+                        </div>
+                        
+                        <!-- LinkedIn Section -->
+                        <div class="linkedin-section" style="margin: 20px 0 15px 0; padding: 15px; background: rgba(0, 119, 181, 0.05); border-radius: 10px;">
+                            <h4 style="margin-bottom: 10px; color: var(--dark); font-size: 0.95rem;">
+                                <i class="fab fa-linkedin"></i> LinkedIn Profile
+                            </h4>
+                            <div id="studentLinkedinStatus" style="color: var(--gray); font-size: 0.85rem; margin-bottom: 10px;">
+                                Not connected
+                            </div>
+                            <button class="btn btn-linkedin" style="width: 100%;" id="connectStudentLinkedinBtn">
+                                <i class="fab fa-linkedin"></i> Connect LinkedIn Profile
+                            </button>
+                            <button class="btn btn-outline" style="width: 100%; margin-top: 8px; display: none;" id="viewStudentLinkedinBtn">
+                                <i class="fab fa-linkedin"></i> View LinkedIn Profile
+                            </button>
+                        </div>
+                        
+                        <button class="btn btn-student" style="width: 100%; margin-bottom: 10px;" id="editStudentProfileBtn">
+                            <i class="fas fa-edit"></i> Edit Profile
+                        </button>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">My Skills</div>
+                        </div>
+                        <div class="skills-list" id="studentSkillsList">
+                            <span class="skill-tag" data-level="advanced" data-category="programming">
+                                JavaScript
+                                <span class="skill-level-badge">Advanced</span>
+                            </span>
+                            <span class="skill-tag" data-level="intermediate" data-category="programming">
+                                React
+                                <span class="skill-level-badge">Intermediate</span>
+                            </span>
+                            <span class="skill-tag" data-level="intermediate" data-category="programming">
+                                Node.js
+                                <span class="skill-level-badge">Intermediate</span>
+                            </span>
+                            <span class="skill-tag" data-level="intermediate" data-category="programming">
+                                Python
+                                <span class="skill-level-badge">Intermediate</span>
+                            </span>
+                            <span class="skill-tag" data-level="beginner" data-category="design">
+                                UI/UX Design
+                                <span class="skill-level-badge">Beginner</span>
+                            </span>
+                        </div>
+                        <button class="btn btn-outline" style="width: 100%; margin-top: 15px;" id="addStudentSkillBtn">
+                            <i class="fas fa-plus"></i> Add Skill
+                        </button>
+                        <button class="btn btn-primary" style="width: 100%; margin-top: 10px;" id="enhanceSkillBtn">
+                            <i class="fas fa-magic"></i> Enhance Skills (AI)
+                        </button>
+
+                    </div>
+
+                    
+                </div>
 
                 <!-- Center Feed -->
                 <div class="center-feed">
-                    <div class="card project-upload">
-                        <h3 style="margin-bottom: 15px;">Upload New Project</h3>
-                        <div class="project-form">
-                            <input type="text" class="form-control" placeholder="Project Title">
-                            <textarea class="form-control" rows="3" placeholder="Project Description"></textarea>
-                            <input type="text" class="form-control" placeholder="GitHub Repository URL">
-                            <div class="skills-list">
-                                <span class="skill-tag">React</span>
-                                <span class="skill-tag">JavaScript</span>
-                                <span class="skill-tag">CSS</span>
+                    <div class="card project-status-card">
+                        <div class="card-header">
+                            <div class="card-title">Project Status</div>
+                        </div>
+                        <div class="project-status-list">
+                            <div class="status-item">
+                                <div class="status-info">
+                                    <span class="project-name">AI Learning Assistant</span>
+                                    <span class="status-badge in-progress">In Progress</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress" style="width: 75%"></div>
+                                </div>
+                                <div class="status-meta">Last updated: 2 days ago</div>
                             </div>
-                            <button class="btn btn-student"><i class="fas fa-upload"></i> Upload Project</button>
+                            <div class="status-item">
+                                <div class="status-info">
+                                    <span class="project-name">Smart Campus Navigation</span>
+                                    <span class="status-badge pending">Pending Review</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress" style="width: 40%"></div>
+                                </div>
+                                <div class="status-meta">Last updated: 1 week ago</div>
+                            </div>
+                            <div class="status-item">
+                                <div class="status-info">
+                                    <span class="project-name">Portfolio Website</span>
+                                    <span class="status-badge completed">Completed</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress" style="width: 100%"></div>
+                                </div>
+                                <div class="status-meta">Completed on: Dec 10, 2024</div>
+                            </div>
                         </div>
                     </div>
 
@@ -203,8 +497,8 @@
                                 <i class="fas fa-user"></i>
                             </div>
                             <div>
-                                <div class="post-user">Namita Shastri</div>
-                                <div class="post-time">2 hours ago</div>
+                                <div class="post-user">Prachi Rajput</div>
+                                <div class="post-time">2 days ago</div>
                             </div>
                         </div>
                         <div class="post-content">
@@ -293,266 +587,36 @@
                             </div>
                         </div>
                     </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">GitHub Analysis</div>
+                        </div>
+                        <div id="studentGithubAnalysis">
+                            <div class="repo-card">
+                                <div class="repo-header">
+                                    <div class="repo-name">personal-portfolio</div>
+                                    <div class="repo-stats">
+                                        <span><i class="fas fa-star"></i> 24</span>
+                                        <span><i class="fas fa-code-branch"></i> 5</span>
+                                    </div>
+                                </div>
+                                <p>Personal portfolio website</p>
+                                <div class="progress-bar">
+                                    <div class="progress" style="width: 85%"></div>
+                                </div>
+                                <div style="font-size: 0.9rem; margin-top: 5px;">Code Quality: 85%</div>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" style="width: 100%; margin-top: 10px;"
+                            id="connectStudentGithubBtn">
+                            <i class="fab fa-github"></i> Connect GitHub
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Faculty Dashboard -->
-    <div class="page" id="faculty-dashboard">
-        <div class="container faculty-dashboard">
-            <h1 style="margin-bottom: 30px; color: var(--faculty-primary);">Faculty Dashboard</h1>
-
-            <div class="main-content fade-in">
-                <!-- Left Sidebar - Profile -->
-                <div class="left-sidebar">
-                    <div class="card profile-card">
-                        <div class="profile-avatar">
-                            <i class="fas fa-user-tie"></i>
-                        </div>
-                        <div class="profile-name" id="facultyName">Yogita Parmar</div>
-                        <div class="profile-title" id="facultyTitle">AI Research Faculty</div>
-                        <div class="profile-stats">
-                            <div class="stat">
-                                <div class="stat-value" id="facultyConnections">24</div>
-                                <div class="stat-label">Connections</div>
-                            </div>
-                            <div class="stat">
-                                <div class="stat-value" id="facultyProjects">8</div>
-                                <div class="stat-label">Mentored</div>
-                            </div>
-                            <div class="stat">
-                                <div class="stat-value" id="facultyPublications">12</div>
-                                <div class="stat-label">Publications</div>
-                            </div>
-                        </div>
-                        
-                        <!-- LinkedIn Section -->
-                        <div class="linkedin-section" style="margin: 20px 0 15px 0; padding: 15px; background: rgba(0, 119, 181, 0.05); border-radius: 10px;">
-                            <h4 style="margin-bottom: 10px; color: var(--dark); font-size: 0.95rem;">
-                                <i class="fab fa-linkedin"></i> LinkedIn Profile
-                            </h4>
-                            <div id="facultyLinkedinStatus" style="color: var(--gray); font-size: 0.85rem; margin-bottom: 10px;">
-                                Not connected
-                            </div>
-                            <button class="btn btn-linkedin" style="width: 100%;" id="connectFacultyLinkedinBtn">
-                                <i class="fab fa-linkedin"></i> Connect LinkedIn Profile
-                            </button>
-                            <button class="btn btn-outline" style="width: 100%; margin-top: 8px; display: none;" id="viewFacultyLinkedinBtn">
-                                <i class="fab fa-linkedin"></i> View LinkedIn Profile
-                            </button>
-                        </div>
-                        
-                        <button class="btn btn-faculty" style="width: 100%; margin-bottom: 10px;" id="editFacultyProfileBtn">
-                            <i class="fas fa-edit"></i> Edit Profile
-                        </button>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">My Skills</div>
-                        </div>
-                        <div class="skills-list" id="facultyResearchAreas">
-                            <span class="skill-tag" data-level="expert" data-category="research">
-                                Machine Learning
-                                <span class="skill-level-badge">Expert</span>
-                            </span>
-                            <span class="skill-tag" data-level="expert" data-category="research">
-                                Natural Language Processing
-                                <span class="skill-level-badge">Expert</span>
-                            </span>
-                            <span class="skill-tag" data-level="advanced" data-category="research">
-                                Computer Vision
-                                <span class="skill-level-badge">Advanced</span>
-                            </span>
-                            <span class="skill-tag" data-level="advanced" data-category="research">
-                                Data Science
-                                <span class="skill-level-badge">Advanced</span>
-                            </span>
-                        </div>
-                        <button class="btn btn-outline" style="width: 100%; margin-top: 15px;" id="addResearchAreaBtn">
-                            <i class="fas fa-plus"></i> Add Skill
-                        </button>
-                        <button class="btn btn-primary" style="width:100%; margin-top:10px;" id="analyzeResearchBtn">
-                            <i class="fas fa-brain"></i> Enhance Skills (AI)
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Center Feed -->
-                <div class="center-feed">
-                    <!-- Active Projects Section -->
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">Active Student Projects</div>
-                            <span style="color: var(--gray); font-size: 0.9rem;">Projects you're mentoring</span>
-                        </div>
-
-                        <div id="facultyActiveProjects">
-                            <div class="project-card-custom">
-                                <div class="project-header">
-                                    <strong>AI-Powered Learning Assistant</strong>
-                                    <span class="project-status status-approved">Approved</span>
-                                </div>
-                                <div style="color: var(--gray); font-size: 0.9rem; margin-top: 6px;">
-                                    Student: Meet Shah • CS Department
-                                </div>
-                                <p style="margin-top: 8px;">
-                                    Developing an AI assistant to help students with course material and assignments.
-                                </p>
-                                <div class="skills-list" style="margin-top: 10px;">
-                                    <span class="skill-tag">Python</span>
-                                    <span class="skill-tag">NLP</span>
-                                    <span class="skill-tag">TensorFlow</span>
-                                </div>
-                                <div class="action-buttons">
-                                    <button class="btn btn-primary btn-small view-project-btn" data-project-id="1">
-                                        <i class="fas fa-eye"></i> View Details
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div class="project-card-custom">
-                                <div class="project-header">
-                                    <strong>Smart Campus Navigation</strong>
-                                    <span class="project-status status-pending">Pending Review</span>
-                                </div>
-                                <div style="color: var(--gray); font-size: 0.9rem; margin-top: 6px;">
-                                    Student: Garvi Shah • CS Department
-                                </div>
-                                <p style="margin-top: 8px;">
-                                    Mobile app for indoor navigation on campus using AR and IoT sensors.
-                                </p>
-                                <div class="skills-list" style="margin-top: 10px;">
-                                    <span class="skill-tag">React Native</span>
-                                    <span class="skill-tag">AR</span>
-                                    <span class="skill-tag">IoT</span>
-                                </div>
-                                <div class="action-buttons">
-                                    <button class="btn btn-primary btn-small approve-project-btn" data-project-id="2">
-                                        <i class="fas fa-check"></i> Approve
-                                    </button>
-                                    <button class="btn btn-danger btn-small reject-project-btn" data-project-id="2">
-                                        <i class="fas fa-times"></i> Reject
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div> 
-
-                <!-- Right Sidebar -->
-                <div class="right-sidebar">
-                    <!-- Collaboration Requests -->
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">Collaboration Requests</div>
-                            <span style="color: var(--gray); font-size: 0.9rem;">From students & faculty</span>
-                        </div>
-
-                        <div id="facultyCollaborationRequests">
-                            <div class="collaboration-request">
-                                <div class="post-header">
-                                    <div class="post-avatar">
-                                        <i class="fas fa-user-graduate"></i>
-                                    </div>
-                                    <div>
-                                        <div class="post-user">Janak Parmar</div>
-                                        <div class="post-time">CS Student • 2 days ago</div>
-                                    </div>
-                                </div>
-                                <p style="margin-top: 10px;">
-                                    Requesting guidance on my final year project about computer vision applications in
-                                    healthcare.
-                                </p>
-                                <div class="action-buttons">
-                                    <button class="btn btn-primary btn-small accept-collab-btn" data-request-id="1">
-                                        <i class="fas fa-check"></i> Accept
-                                    </button>
-                                    <button class="btn btn-outline btn-small decline-collab-btn" data-request-id="1">
-                                        <i class="fas fa-times"></i> Decline
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div class="collaboration-request">
-                                <div class="post-header">
-                                    <div class="post-avatar">
-                                        <i class="fas fa-user-tie"></i>
-                                    </div>
-                                    <div>
-                                        <div class="post-user">Dr. kalpna Metre</div>
-                                        <div class="post-time">Data Science Dept • 5 days ago</div>
-                                    </div>
-                                </div>
-                                <p style="margin-top: 10px;">
-                                    Interested in collaborating on the NSF grant proposal for AI in education. Your
-                                    expertise in NLP would be valuable.
-                                </p>
-                                <div class="action-buttons">
-                                    <button class="btn btn-primary btn-small accept-collab-btn" data-request-id="2">
-                                        <i class="fas fa-check"></i> Accept
-                                    </button>
-                                    <button class="btn btn-outline btn-small decline-collab-btn" data-request-id="2">
-                                        <i class="fas fa-times"></i> Decline
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Student & Faculty Profiles -->
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">Suggested Profiles</div>
-                        </div>
-                        
-                        <!-- Student Profile -->
-                        <div class="suggested-profile">
-                            <div class="profile-header">
-                                <div class="profile-avatar-small">
-                                    <i class="fas fa-user-graduate"></i>
-                                </div>
-                                <div class="profile-info">
-                                    <div class="profile-name-small">Meet Shah</div>
-                                    <div class="profile-title-small">Computer Science Student</div>
-                                </div>
-                            </div>
-                            <div class="profile-skills-small">
-                                <span class="skill-tag-small">Python</span>
-                                <span class="skill-tag-small">AI/ML</span>
-                                <span class="skill-tag-small">Research</span>
-                            </div>
-                            <button class="btn btn-linkedin btn-small" style="width: 100%; margin-top: 10px;">
-                                <i class="fab fa-linkedin"></i> View LinkedIn
-                            </button>
-                        </div>
-                        
-                        <!-- Faculty Profile -->
-                        <div class="suggested-profile" style="margin-top: 15px;">
-                            <div class="profile-header">
-                                <div class="profile-avatar-small">
-                                    <i class="fas fa-user-tie"></i>
-                                </div>
-                                <div class="profile-info">
-                                    <div class="profile-name-small">Dr. Priya Sharma</div>
-                                    <div class="profile-title-small">AI Research Lead</div>
-                                </div>
-                            </div>
-                            <div class="profile-skills-small">
-                                <span class="skill-tag-small">Deep Learning</span>
-                                <span class="skill-tag-small">NLP</span>
-                                <span class="skill-tag-small">Publications</span>
-                            </div>
-                            <button class="btn btn-linkedin btn-small" style="width: 100%; margin-top: 10px;">
-                                <i class="fab fa-linkedin"></i> View LinkedIn
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- Network Page -->
     <div class="page" id="network-page">
@@ -921,41 +985,6 @@
                                 </div>
 
                                 <button class="btn btn-outline" style="width: 100%; margin-top: 10px;">Connect</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Groups & Communities -->
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">Skill Communities</div>
-                        </div>
-
-                        <div class="groups-list">
-                            <div class="group-item">
-                                <div class="post-header">
-                                    <div class="post-avatar"><i class="fas fa-laptop-code"></i></div>
-                                    <div>
-                                        <div class="post-user">Web Dev Community</div>
-                                        <div class="post-time">245 members</div>
-                                    </div>
-                                </div>
-
-                                <button class="btn btn-outline" style="width: 100%; margin-top: 10px;">Join
-                                    Group</button>
-                            </div>
-
-                            <div class="group-item" style="margin-top: 15px;">
-                                <div class="post-header">
-                                    <div class="post-avatar"><i class="fas fa-robot"></i></div>
-                                    <div>
-                                        <div class="post-user">AI & ML Enthusiasts</div>
-                                        <div class="post-time">189 members</div>
-                                    </div>
-                                </div>
-
-                                <button class="btn btn-outline" style="width: 100%; margin-top: 10px;">Join
-                                    Group</button>
                             </div>
                         </div>
                     </div>
@@ -1427,7 +1456,7 @@
     </div>
 
     <!-- Skill Summary Page -->
-    <div class="page" id="skill-summary-page">
+    <!-- <div class="page" id="skill-summary-page">
         <div class="container">
             <div class="page-header">
                 <h1 style="margin-bottom: 10px; color: var(--primary);">Skill Summary</h1>
@@ -1454,8 +1483,8 @@
             </div>
 
             <div class="main-content">
-                <!-- Left Column -->
-                <div class="left-sidebar">
+                Left Column -->
+                <!-- <div class="left-sidebar">
                     <div class="card skill-category-card">
                         <h3>Top Skills by Category</h3>
                         <div class="skill-category">
@@ -1487,10 +1516,10 @@
                             </div>
                         </div>
                     </div>
-                </div>
+                </div> -->
 
                 <!-- Center Column -->
-                <div class="center-feed">
+                <!-- <div class="center-feed">
                     <div class="card">
                         <div class="card-header">
                             <div class="card-title">Skill Growth Trends</div>
@@ -1512,10 +1541,10 @@
                             </div>
                         </div>
                     </div>
-                </div>
+                </div> -->
 
                 <!-- Right Column -->
-                <div class="right-sidebar">
+                <!-- <div class="right-sidebar">
                     <div class="card">
                         <div class="card-header">
                             <div class="card-title">Skill Recommendations</div>
@@ -1547,7 +1576,7 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div> -->
 
     <!-- Analyse Modal (re-usable) -->
     <div class="modal-overlay" id="pc_analyseModal" style="display:none;">
