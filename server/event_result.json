@@ -1,0 +1,11 @@
+{
+  "id": 1,
+  "title": "AI & ML Workshop",
+  "description": "Hands-on session on AI and Machine Learning basics",
+  "event_date": "2026-12-09T18:30:00.000Z",
+  "start_time": "10:00:00",
+  "end_time": "13:00:00",
+  "type": "workshop",
+  "status": "upcoming",
+  "form_link": "https://forms.google.com/ai-workshop"
+}

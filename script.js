@@ -14,22 +14,6 @@ const pages = document.querySelectorAll('.page');
 const mainHeader = document.getElementById('main-header');
 const mainFooter = document.getElementById('main-footer');
 
-// Demo accounts
-const demoAccounts = {
-    student: {
-        email: 'student@skillconnect.edu',
-        password: 'password',
-        name: 'Shastri Namita',
-        title: 'Computer Science Student'
-    },
-    faculty: {
-        email: 'faculty@skillconnect.edu',
-        password: 'password',
-        name: 'Ms. Prachi Rajput',
-        title: 'Platform Administrator'
-    }
-};
-
 // Track currently editing skill
 let editingSkill = null;
 
@@ -228,11 +212,9 @@ function initializeNetworkFilters() {
     const applyFiltersBtn = document.getElementById('applyFiltersBtn');
     const resetFiltersBtn = document.getElementById('resetFiltersBtn');
 
-    const profileCards = document.querySelectorAll('#network-page .profile-card');
-
     let activeFilters = {
         department: "",
-                skills: "",
+        skills: "",
         role: "",
         year: ""
     };
@@ -240,7 +222,7 @@ function initializeNetworkFilters() {
     function applyFilters() {
         const dep = departmentFilter.value.toLowerCase();
         const skillsVal = skillsFilter.value.toLowerCase();
-        const roleVal = roleFilter.value;
+        const roleVal = roleFilter.value.toLowerCase();
         const yearVal = yearFilter.value;
 
         activeFilters = {
@@ -251,14 +233,15 @@ function initializeNetworkFilters() {
         };
 
         let count = 0;
+        const currentProfileCards = document.querySelectorAll('#network-page .profile-card');
 
-        profileCards.forEach(card => {
+        currentProfileCards.forEach(card => {
             let show = true;
 
-            const cardDept = card.getAttribute('data-department');
-            const cardRole = card.getAttribute('data-role');
-            const cardYear = card.getAttribute('data-year');
-            const cardSkills = card.getAttribute('data-skills');
+            const cardDept = card.getAttribute('data-department') || "";
+            const cardRole = card.getAttribute('data-role') || "";
+            const cardYear = card.getAttribute('data-year') || "";
+            const cardSkills = card.getAttribute('data-skills') || "";
 
             if (dep && cardDept !== dep) show = false;
             if (skillsVal && !cardSkills.includes(skillsVal)) show = false;
@@ -324,6 +307,34 @@ function initializeConnectButtons() {
 }
 
 //mentorship and groups
+async function loadMentors() {
+    const list = document.querySelector('.mentorship-list');
+    if (!list) return;
+    try {
+        const apiUrl = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || !window.location.hostname ? 'http://localhost:3000/api/network/mentors' : '/api/network/mentors';
+        const res = await fetch(apiUrl);
+        if (res.ok) {
+            const mentors = await res.json();
+            list.innerHTML = mentors.length === 0 ? '<span style="color: var(--gray);">No mentors available</span>' : mentors.map(m => `
+                <div class="mentor-item" style="margin-top: 15px;">
+                    <div class="post-header">
+                        <div class="post-avatar"><i class="fas fa-user-tie"></i></div>
+                        <div>
+                            <div class="post-user">${m.name}</div>
+                            <div class="post-time">${m.department || 'Faculty'}</div>
+                        </div>
+                    </div>
+                    <div class="skills-list" style="margin-top: 10px;">
+                        ${(m.skills||'').split(',').map(s => s ? `<span class="skill-tag">${s.trim()}</span>` : '').join('')}
+                    </div>
+                    <button class="btn btn-outline" data-mentor-id="${m.id}" style="width: 100%; margin-top: 10px;">Request Mentorship</button>
+                </div>
+            `).join('');
+            initializeMentorshipButtons();
+        }
+    } catch(err) {}
+}
+
 function initializeMentorshipButtons() {
     // Mentorship
     const mentorBtns = document.querySelectorAll('.mentorship-list .btn');
@@ -332,16 +343,27 @@ function initializeMentorshipButtons() {
         if (!btn.hasAttribute('data-init')) {
             btn.setAttribute('data-init', 'true');
 
-            btn.addEventListener('click', function () {
-                const name = this.closest('.mentor-item')
-                    .querySelector('.post-user').textContent;
+            btn.addEventListener('click', async function () {
+                if (!currentUser) return showNotification('Please login first', 'error');
+                const mentorId = this.getAttribute('data-mentor-id');
+                const name = this.closest('.mentor-item').querySelector('.post-user').textContent;
 
-                this.innerHTML = '<i class="fas fa-check"></i> Requested';
-                this.classList.remove('btn-outline');
-                this.classList.add('btn-primary');
-                this.disabled = true;
+                try {
+                    const apiUrl = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || !window.location.hostname ? 'http://localhost:3000/api/network/mentorship-request' : '/api/network/mentorship-request';
+                    await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ student_id: currentUser.id, mentor_id: mentorId })
+                    });
+                    this.innerHTML = '<i class="fas fa-check"></i> Requested';
+                    this.classList.remove('btn-outline');
+                    this.classList.add('btn-primary');
+                    this.disabled = true;
 
-                showNotification(`Request sent to ${name}`, 'success');
+                    showNotification(`Request sent to ${name}`, 'success');
+                } catch(err) {
+                    showNotification('Failed to send request', 'error');
+                }
             });
         }
     });
@@ -369,6 +391,31 @@ function initializeMentorshipButtons() {
 }
 
 //dynamic network handlers
+async function loadNetworkDropdowns() {
+    try {
+        const deptUrl = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || !window.location.hostname ? 'http://localhost:3000/api/network/departments' : '/api/network/departments';
+        const skillsUrl = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || !window.location.hostname ? 'http://localhost:3000/api/network/skills' : '/api/network/skills';
+
+        const [deptRes, skillsRes] = await Promise.all([fetch(deptUrl), fetch(skillsUrl)]);
+        
+        if (deptRes.ok) {
+            const depts = await deptRes.json();
+            const deptFilter = document.getElementById('departmentFilter');
+            if (deptFilter) {
+                deptFilter.innerHTML = '<option value="">All Departments</option>' + depts.map(d => `<option value="${d.toLowerCase()}">${d}</option>`).join('');
+            }
+        }
+
+        if (skillsRes.ok) {
+            const skills = await skillsRes.json();
+            const skillFilter = document.getElementById('skillsFilter');
+            if (skillFilter) {
+                skillFilter.innerHTML = '<option value="">All Skills</option>' + skills.map(s => `<option value="${s.toLowerCase()}">${s}</option>`).join('');
+            }
+        }
+    } catch(err) {}
+}
+
 async function loadConnectionRequests() {
     if (!currentUser) return;
     const incomingContainer = document.getElementById('incomingRequestsContainer');
@@ -455,6 +502,7 @@ async function loadTrendingSkills() {
 
 //initialize network page
 async function initializeNetworkPage() {
+    await loadNetworkDropdowns();
     initializeNetworkFilters();
     loadConnectionRequests();
     loadTrendingSkills();
@@ -487,7 +535,44 @@ async function initializeNetworkPage() {
         console.error("Failed fetching network queries:", err);
     }
     initializeConnectButtons();
-    initializeMentorshipButtons();
+    loadMentors();
+}
+
+async function loadFacultyDashboard() {
+    if (!currentUser) return;
+    loadFacultyCollabRequests();
+}
+
+async function loadFacultyCollabRequests() {
+    const list = document.getElementById('facultyCollaborationRequests');
+    if (!list) return;
+    try {
+        const apiUrl = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || !window.location.hostname ? `http://localhost:3000/api/faculty/${currentUser.id}/requests` : `/api/faculty/${currentUser.id}/requests`;
+        const res = await fetch(apiUrl);
+        if (res.ok) {
+            const data = await res.json();
+            list.innerHTML = data.length === 0 ? '<p style="color:var(--gray);font-size:0.9rem;">No pending requests.</p>' : data.map(r => `
+                <div class="collaboration-request">
+                    <div class="post-header">
+                        <div class="post-avatar"><i class="fas fa-user-graduate"></i></div>
+                        <div>
+                            <div class="post-user">${r.name}</div>
+                            <div class="post-time">${r.department || ''} ${r.year ? '• '+r.year+' Year' : ''}</div>
+                        </div>
+                    </div>
+                    <p style="margin-top: 10px;">${r.message || ''}</p>
+                    <div class="action-buttons">
+                        <button class="btn btn-primary btn-small accept-collab-btn" data-request-id="${r.request_id}" data-type="${r.type}">
+                            <i class="fas fa-check"></i> Accept
+                        </button>
+                        <button class="btn btn-outline btn-small decline-collab-btn" data-request-id="${r.request_id}" data-type="${r.type}">
+                            <i class="fas fa-times"></i> Decline
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+    } catch(err) {}
 }
 
 //navs + log in
@@ -557,6 +642,7 @@ function showPage(pageId) {
             setTimeout(initializeExistingSkills, 100);
         } else {
             document.getElementById('faculty-dashboard')?.classList.add('active');
+            setTimeout(loadFacultyDashboard, 100);
         }
         return;
     }
@@ -578,7 +664,7 @@ function showPage(pageId) {
 
     if (pageId === 'clubs') {
         setTimeout(() => {
-            initializeJoinClubButtons();
+            loadAllClubs();
             updateMyClubsUI();
         }, 100);
     }
@@ -665,34 +751,119 @@ async function loadDashboardEvents() {
         const res = await fetch(apiUrl);
         if (res.ok) {
             const events = await res.json();
-            evtContainer.innerHTML = events.length === 0 ? '<p style="color:var(--gray)">No upcoming events.</p>' : events.slice(0, 3).map(e => `
+            evtContainer.innerHTML = events.length === 0 ? '<p style="color:var(--gray)">No upcoming events.</p>' : events.slice(0, 3).map(e => {
+                const dateObj = e.event_date ? new Date(e.event_date) : null;
+                const day = dateObj && !isNaN(dateObj) ? dateObj.getDate() : 'TBA';
+                const month = dateObj && !isNaN(dateObj) ? dateObj.toLocaleString('default', { month: 'short' }).toUpperCase() : '';
+                return `
                 <div class="event-card">
                     <div class="event-date">
-                        <div class="event-day">${new Date(e.date).getDate() || 'TBA'}</div>
-                        <div class="event-month">${new Date(e.date).toLocaleString('default', { month: 'short' }) || ''}</div>
+                        <div class="event-day">${day}</div>
+                        <div class="event-month">${month}</div>
                     </div>
                     <div class="event-details">
                         <div class="event-title">${e.title}</div>
-                        <div class="event-time">${e.time || '10:00 AM'}</div>
+                        <div class="event-time">${e.start_time || '10:00 AM'}</div>
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
         }
     } catch(err) {} 
 }
 
-async function loadFacultyActivities() {
-    const actContainer = document.getElementById("facultyRecentActivities");
-    if (!actContainer || currentRole !== 'faculty') return;
-    await pc_initializeDemoContent();
-    
-    actContainer.innerHTML = pc_projects.slice(0, 5).map(p => `
-        <div style="border-left: 3px solid var(--faculty-primary); padding-left: 10px; margin-bottom: 12px;">
-            <div style="font-size:0.85rem; color:var(--gray);">${p.owner} uploaded a new project</div>
-            <strong>${p.title}</strong>
-            <div style="font-size:0.9rem;">${p.description}</div>
-        </div>
-    `).join('') || '<p style="color:var(--gray)">No recent network activities.</p>';
+async function loadFacultyActiveProjects() {
+    const container = document.getElementById("facultyActiveProjects");
+    if (!container || currentRole !== 'faculty') return;
+    try {
+        const apiUrl = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || !window.location.hostname ? `http://localhost:3000/api/faculty/${currentUser.id}/projects` : `/api/faculty/${currentUser.id}/projects`;
+        const res = await fetch(apiUrl);
+        if (res.ok) {
+            const projects = await res.json();
+            container.innerHTML = projects.length === 0 ? '<p style="color:var(--gray)">No active projects.</p>' : projects.map(p => `
+                <div class="project-card-custom">
+                    <div class="project-header">
+                        <strong>${p.title}</strong>
+                        <span class="project-status status-approved">Active</span>
+                    </div>
+                    <div style="color: var(--gray); font-size: 0.9rem; margin-top: 6px;">
+                        Student: ${p.owner_name} • ${p.department}
+                    </div>
+                    <p style="margin-top: 8px;">${p.description}</p>
+                    <div class="skills-list" style="margin-top: 10px;">
+                        ${(p.skills || '').split(',').map(s => s ? `<span class="skill-tag">${s.trim()}</span>` : '').join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+    } catch (err) { console.error("Failed fetching active projects:", err); }
+}
+
+async function handleFacultyRequestAction(id, type, action, btn) {
+    try {
+        const apiUrl = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || !window.location.hostname ? `http://localhost:3000/api/faculty/requests/${type}/${id}` : `/api/faculty/requests/${type}/${id}`;
+        await fetch(apiUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action })
+        });
+        showNotification(`Request ${action} successfully!`, 'success');
+        loadFacultyCollabRequests();
+    } catch (err) { showNotification('Failed to update request', 'error'); }
+}
+
+async function loadFacultyCollabRequests() {
+    const container = document.getElementById("facultyCollaborationRequests");
+    if (!container || currentRole !== 'faculty') return;
+    try {
+        const apiUrl = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || !window.location.hostname ? `http://localhost:3000/api/faculty/${currentUser.id}/requests` : `/api/faculty/${currentUser.id}/requests`;
+        const res = await fetch(apiUrl);
+        if (res.ok) {
+            const reqs = await res.json();
+            container.innerHTML = reqs.length === 0 ? '<p style="color:var(--gray)">No pending requests.</p>' : reqs.map(r => `
+                <div class="collaboration-request">
+                    <div class="post-header">
+                        <div class="post-avatar"><i class="fas fa-user"></i></div>
+                        <div>
+                            <div class="post-user">${r.name}</div>
+                            <div class="post-time">${r.department} • ${r.year ? r.year + ' Year' : ''}</div>
+                        </div>
+                    </div>
+                    <p style="margin-top: 10px;">${r.message}</p>
+                    <div class="action-buttons">
+                        <button class="btn btn-primary btn-small" onclick="handleFacultyRequestAction(${r.request_id}, '${r.type}', 'accepted', this)"><i class="fas fa-check"></i> Accept</button>
+                        <button class="btn btn-outline btn-small" onclick="handleFacultyRequestAction(${r.request_id}, '${r.type}', 'rejected', this)"><i class="fas fa-times"></i> Decline</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+    } catch (err) { console.error("Failed fetching collaboration requests:", err); }
+}
+
+async function loadSuggestedProfiles() {
+    const container = document.getElementById("suggestedProfilesContainer");
+    if (!container) return;
+    try {
+        const fetchRole = currentRole === 'student' ? 'faculty' : 'student';
+        const apiUrl = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || !window.location.hostname ? `http://localhost:3000/api/suggestions?role=${fetchRole}` : `/api/suggestions?role=${fetchRole}`;
+        const res = await fetch(apiUrl);
+        if (res.ok) {
+            const profiles = await res.json();
+            container.innerHTML = profiles.length === 0 ? '<p style="color:var(--gray)">No suggestions.</p>' : profiles.map(p => `
+                <div class="suggested-profile" style="margin-top: 15px;">
+                    <div class="profile-header">
+                        <div class="profile-avatar-small"><i class="fas fa-user"></i></div>
+                        <div class="profile-info">
+                            <div class="profile-name-small">${p.name}</div>
+                            <div class="profile-title-small">${p.department}</div>
+                        </div>
+                    </div>
+                    <div class="profile-skills-small" style="display:flex; flex-wrap:wrap; gap:5px;">
+                        ${(p.skills || '').split(',').map(s => s ? `<span class="skill-tag-small">${s.trim()}</span>` : '').join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+    } catch (err) { console.error("Failed fetching suggested profiles:", err); }
 }
 
 async function showDashboard() {
@@ -754,7 +925,9 @@ async function showDashboard() {
 
     loadDashboardPosts();
     loadDashboardEvents();
-    loadFacultyActivities();
+    loadFacultyActiveProjects();
+    loadFacultyCollabRequests();
+    loadSuggestedProfiles();
 
     navLinks.forEach(n => n.classList.remove('active'));
     document.querySelector('[data-page="dashboard"]').classList.add('active');
@@ -780,6 +953,28 @@ function handleLogout() {
 }
 
 //club join leave ui
+async function loadAllClubs() {
+    const container = document.getElementById('allClubsList');
+    if (!container) return;
+    try {
+        const apiUrl = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || !window.location.hostname ? `http://localhost:3000/api/clubs` : `/api/clubs`;
+        const res = await fetch(apiUrl);
+        if (res.ok) {
+            const clubs = await res.json();
+            container.innerHTML = clubs.length === 0 ? '<p style="color:var(--gray); padding: 15px;">No clubs found.</p>' : clubs.map(c => `
+                <div class="club-card-custom">
+                    <strong>${c.name}</strong>
+                    <p style="color: var(--gray); font-size: 0.9rem;">${c.description || 'Join this exciting community!'}</p>
+                    <button class="btn btn-outline btn-small" style="margin-top: 8px;">Join Club</button>
+                </div>
+            `).join('');
+            
+            initializeJoinClubButtons();
+            if (typeof updateAllClubsButtons === 'function') updateAllClubsButtons();
+        }
+    } catch(err) {}
+}
+
 function initializeJoinClubButtons() {
     const buttons = document.querySelectorAll('#allClubsList .btn-outline');
 
@@ -789,7 +984,7 @@ function initializeJoinClubButtons() {
 
             btn.addEventListener('click', async function () {
                 const card = this.closest('.club-card-custom');
-                const clubName = card.querySelector('.club-title').textContent.trim();
+                const clubName = card.querySelector('strong').textContent.trim();
 
                 if (!currentUser) return showNotification("Please login first", "error");
 
@@ -1130,7 +1325,7 @@ function pc_renderIncomingRequests() {
     const myName = currentUser ? currentUser.name : "You";
 
     const mine = pc_requests.filter(r => {
-        const proj = pc_projects.find(p => p.id === r.projectId);
+        const proj = pc_projects.find(p => p.id == r.projectId);
         return proj && proj.owner === myName;
     });
 
@@ -1488,62 +1683,27 @@ async function pc_initializeDemoContent() {
                 team: []
             }));
             
-            // Generate some test requests
-            pc_requests = [
-                {
-                    id: "demo_req_1",
-                    projectId: pc_projects.length > 0 ? pc_projects[0].id : "demo_2",
-                    applicantName: "Mock Student",
-                    github: "https://github.com/mock",
-                    comment: "I can help with frontend UI.",
-                    skills: ["React", "CSS"]
-                }
-            ];
+            // Fetch real requests
+            const reqUrl = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || !window.location.hostname ? `http://localhost:3000/api/projects/all-requests` : `/api/projects/all-requests`;
+            const reqRes = await fetch(reqUrl);
+            if (reqRes.ok) {
+                const reqData = await reqRes.json();
+                pc_requests = reqData.map(r => ({
+                    id: r.id,
+                    projectId: r.project_id,
+                    applicantName: r.applicant_name,
+                    github: r.github,
+                    comment: r.comment,
+                    skills: (r.skills || '').split(',').map(s => s.trim())
+                }));
+            } else {
+                pc_requests = [];
+            }
             pc_renderMyProjects();
         }
     } catch(err) {
         console.warn("Falling back since backend wasn't reached");
     }
-}
-
-function pc_addTestRequests() {
-    const myName = currentUser ? currentUser.name : "You";
-
-    const testProj = {
-        id: "proj_test",
-        owner: myName,
-        title: "AI Chatbot for College",
-        description: "AI chatbot to answer college FAQs.",
-        github: "https://github.com/college/chatbot",
-        skills: ["Python", "NLP"],
-        roles: "ML Engineer",
-        team: []
-    };
-
-    if (!pc_projects.find(p => p.id === "proj_test")) {
-        pc_projects.unshift(testProj);
-    }
-
-    const r1 = {
-        id: "req_test_01",
-        projectId: "proj_test",
-        applicantName: "Saksham Dubey",
-        github: "https://github.com/rohan/ai-projects",
-        comment: "I have ML experience and want to contribute.",
-        skills: ["Python", "TensorFlow"]
-    };
-
-    const r2 = {
-        id: "req_test_02",
-        projectId: "proj_test",
-        applicantName: "Janak Parmar",
-        github: "https://github.com/aisha/react-dashboard",
-        comment: "I can help with frontend UI and design.",
-        skills: ["React", "UI/UX"]
-    };
-
-    if (!pc_requests.find(r => r.id === "req_test_01")) pc_requests.push(r1);
-    if (!pc_requests.find(r => r.id === "req_test_02")) pc_requests.push(r2);
 }
 
 function pc_onProjectsPageShow() {
@@ -1684,32 +1844,44 @@ document.addEventListener('click', function (e) {
 
     // Collaboration request acceptance
     if (e.target.closest('.accept-collab-btn')) {
-        const requestId = e.target.closest('.accept-collab-btn').getAttribute('data-request-id');
-        const requestCard = e.target.closest('.collaboration-request');
+        const btn = e.target.closest('.accept-collab-btn');
+        const requestId = btn.getAttribute('data-request-id');
+        const type = btn.getAttribute('data-type') || 'mentorship';
+        const requestCard = btn.closest('.collaboration-request');
 
-        // Update UI
-        requestCard.style.borderLeftColor = '#28a745';
-        requestCard.querySelector('.action-buttons').innerHTML = `
-            <span style="color: var(--success); font-weight: 600;">
-                <i class="fas fa-check"></i> Collaboration Accepted
-            </span>
-        `;
-
-        showNotification('Collaboration request accepted!', 'success');
+        const apiUrl = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || !window.location.hostname ? `http://localhost:3000/api/faculty/requests/${type}/${requestId}` : `/api/faculty/requests/${type}/${requestId}`;
+        fetch(apiUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'accepted' })
+        }).then(() => {
+            requestCard.style.borderLeftColor = '#28a745';
+            requestCard.querySelector('.action-buttons').innerHTML = `
+                <span style="color: var(--success); font-weight: 600;">
+                    <i class="fas fa-check"></i> Accepted
+                </span>
+            `;
+            showNotification('Request accepted!', 'success');
+        }).catch(() => showNotification('Error updating request', 'error'));
     }
 
     // Collaboration request decline
     if (e.target.closest('.decline-collab-btn')) {
-        const requestId = e.target.closest('.decline-collab-btn').getAttribute('data-request-id');
-        const requestCard = e.target.closest('.collaboration-request');
+        const btn = e.target.closest('.decline-collab-btn');
+        const requestId = btn.getAttribute('data-request-id');
+        const type = btn.getAttribute('data-type') || 'mentorship';
+        const requestCard = btn.closest('.collaboration-request');
 
-        // Fade out and remove
-        requestCard.style.opacity = '0.5';
-        setTimeout(() => {
-            requestCard.remove();
-        }, 500);
-
-        showNotification('Collaboration request declined', 'error');
+        const apiUrl = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || !window.location.hostname ? `http://localhost:3000/api/faculty/requests/${type}/${requestId}` : `/api/faculty/requests/${type}/${requestId}`;
+        fetch(apiUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'rejected' })
+        }).then(() => {
+            requestCard.style.opacity = '0.5';
+            setTimeout(() => requestCard.remove(), 500);
+            showNotification('Request declined', 'success');
+        }).catch(() => showNotification('Error updating request', 'error'));
     }
 
     // View project details
@@ -2195,30 +2367,38 @@ async function initializeEventsPage() {
             const events = await res.json();
             
             // Upcoming
-            const upcoming = events.filter(e => new Date(e.date) >= new Date());
-            upcomingContainer.innerHTML = upcoming.map(e => `
+            const upcoming = events.filter(e => e.event_date ? new Date(e.event_date) >= new Date() : true);
+            upcomingContainer.innerHTML = upcoming.map(e => {
+                const dateObj = e.event_date ? new Date(e.event_date) : null;
+                const day = dateObj && !isNaN(dateObj) ? dateObj.getDate() : 'TBA';
+                const month = dateObj && !isNaN(dateObj) ? dateObj.toLocaleString('default', { month: 'short' }).toUpperCase() : '';
+                return `
                 <div class="event-card">
                     <div class="event-date">
-                        <div class="event-day">${new Date(e.date).getDate() || 'TBA'}</div>
-                        <div class="event-month">${new Date(e.date).toLocaleString('default', { month: 'short' }).toUpperCase() || ''}</div>
+                        <div class="event-day">${day}</div>
+                        <div class="event-month">${month}</div>
                     </div>
                     <div class="event-details">
                         <div class="event-title">${e.title}</div>
-                        <div class="event-time">${e.time || '10:00 AM'}</div>
+                        <div class="event-time">${e.start_time || '10:00 AM'}</div>
                         <button class="btn btn-primary btn-small event-register-btn" data-event-id="${e.id}" style="margin-top: 5px;">Register</button>
                     </div>
                 </div>
-            `).join('') || '<p style="padding:15px;color:var(--gray)">No upcoming events.</p>';
+            `}).join('') || '<p style="padding:15px;color:var(--gray)">No upcoming events.</p>';
 
             // Handle Past events in center
             const pastContainer = document.querySelector('#events-page .center-feed .scrollable-content');
             if (pastContainer) {
-                const past = events.filter(e => new Date(e.date) < new Date());
-                pastContainer.innerHTML = past.map(e => `
+                const past = events.filter(e => e.event_date && new Date(e.event_date) < new Date());
+                pastContainer.innerHTML = past.map(e => {
+                    const dateObj = e.event_date ? new Date(e.event_date) : null;
+                    const day = dateObj && !isNaN(dateObj) ? dateObj.getDate() : 'TBA';
+                    const month = dateObj && !isNaN(dateObj) ? dateObj.toLocaleString('default', { month: 'short' }).toUpperCase() : '';
+                    return `
                     <div class="event-card">
                         <div class="event-date">
-                            <div class="event-day">${new Date(e.date).getDate() || 'TBA'}</div>
-                            <div class="event-month">${new Date(e.date).toLocaleString('default', { month: 'short' }).toUpperCase() || ''}</div>
+                            <div class="event-day">${day}</div>
+                            <div class="event-month">${month}</div>
                         </div>
                         <div class="event-details">
                             <div class="event-title">${e.title}</div>
@@ -2226,23 +2406,36 @@ async function initializeEventsPage() {
                             <p style="margin-top: 8px; color: var(--gray);">${e.description || 'Event concluded successfully.'}</p>
                         </div>
                     </div>
-                `).join('') || '<p style="padding:15px;color:var(--gray)">No past events.</p>';
+                `}).join('') || '<p style="padding:15px;color:var(--gray)">No past events.</p>';
             }
             
+            // Fetch Event Stats
+            const statsUrl = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || !window.location.hostname ? `http://localhost:3000/api/events/stats` : `/api/events/stats`;
+            const statsRes = await fetch(statsUrl);
+            let avgAttendance = "N/A";
+            let totalCnt = events.length;
+            let upcomingCnt = upcoming.length;
+            if (statsRes.ok) {
+                const statsData = await statsRes.json();
+                avgAttendance = statsData.attendance;
+                totalCnt = statsData.total;
+                upcomingCnt = statsData.upcoming;
+            }
+
             // Stats Update
             const statsContainer = document.querySelector('#events-page .event-stats-grid');
             if (statsContainer) {
                 statsContainer.innerHTML = `
                     <div class="stat-card student" style="margin-bottom: 15px;">
-                        <div class="stat-number">${events.length}</div>
+                        <div class="stat-number">${totalCnt}</div>
                         <div class="stat-label">Total Valid Events</div>
                     </div>
                     <div class="stat-card student" style="margin-bottom: 15px;">
-                        <div class="stat-number">${upcoming.length}</div>
+                        <div class="stat-number">${upcomingCnt}</div>
                         <div class="stat-label">Upcoming Events</div>
                     </div>
                     <div class="stat-card student">
-                        <div class="stat-number">92%</div>
+                        <div class="stat-number">${avgAttendance}</div>
                         <div class="stat-label">Average Attendance</div>
                     </div>
                 `;

@@ -534,6 +534,21 @@ app.get("/api/projects", async (req, res) => {
   }
 });
 
+// Get all project requests
+app.get("/api/projects/all-requests", async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT pr.id, pr.project_id, pr.github_link as github, pr.contribution as comment, pr.skills, u.name as applicant_name
+      FROM project_requests pr
+      JOIN users u ON pr.applicant_id = u.id
+      WHERE pr.status = 'pending'
+    `);
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
 
 // Skill enhancement endpoint
 app.post("/ai/skills", async (req, res) => {
@@ -605,6 +620,37 @@ app.get("/api/network/requests/:userId", async (req, res) => {
   }
 });
 
+// Send Mentorship Request
+app.post("/api/network/mentorship-request", async (req, res) => {
+  const { student_id, mentor_id } = req.body;
+  try {
+    if (student_id === mentor_id) return res.status(400).json({ error: "Cannot mentor yourself" });
+    const existing = await pool.query('SELECT * FROM mentorship_requests WHERE student_id = $1 AND mentor_id = $2', [student_id, mentor_id]);
+    if (existing.rows.length === 0) {
+      await pool.query('INSERT INTO mentorship_requests (student_id, mentor_id, status) VALUES ($1, $2, $3)', [student_id, mentor_id, 'pending']);
+    }
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+// Fetch Available Mentors
+app.get("/api/network/mentors", async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT u.id, u.name, u.title, u.department, 
+      (SELECT string_agg(s.name, ',') FROM skills s WHERE s.user_id = u.id) as skills
+      FROM users u
+      WHERE u.role = 'faculty'
+      LIMIT 10
+    `);
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
 // Send Connection Request
 app.post("/api/network/connect", async (req, res) => {
   const { sender_id, receiver_id } = req.body;
@@ -654,6 +700,138 @@ app.get("/api/network/trending-skills", async (req, res) => {
   }
 });
 
+
+// Get Network Dropdowns
+app.get("/api/network/departments", async (req, res) => {
+  try {
+    const { rows } = await pool.query("SELECT DISTINCT department FROM users WHERE department IS NOT NULL AND department != '' ORDER BY department");
+    res.json(rows.map(r => r.department));
+  } catch (err) {
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+app.get("/api/network/skills", async (req, res) => {
+  try {
+    const { rows } = await pool.query("SELECT DISTINCT name FROM skills WHERE name IS NOT NULL AND name != '' ORDER BY name");
+    res.json(rows.map(r => r.name));
+  } catch (err) {
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+app.get("/api/clubs", async (req, res) => {
+  try {
+    const { rows } = await pool.query("SELECT * FROM clubs ORDER BY name");
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+// Get Event Stats
+app.get("/api/events/stats", async (req, res) => {
+  try {
+    const totalEvents = await pool.query("SELECT COUNT(*) FROM events");
+    const upcomingEvents = await pool.query("SELECT COUNT(*) FROM events WHERE event_date >= CURRENT_DATE");
+    const totalRegs = await pool.query("SELECT COUNT(*) FROM event_registrations");
+    
+    // Calculate a dynamic attendance stat (avg regs per event)
+    let avg = 0;
+    if (parseInt(totalEvents.rows[0].count) > 0) {
+      avg = Math.round((parseInt(totalRegs.rows[0].count) / parseInt(totalEvents.rows[0].count)) * 100);
+      avg = avg > 100 ? 100 : avg; // cap at 100% theoretically
+    }
+    
+    res.json({
+        total: totalEvents.rows[0].count,
+        upcoming: upcomingEvents.rows[0].count,
+        attendance: avg > 0 ? avg + '%' : 'N/A'
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+// Get Events
+app.get("/api/events", async (req, res) => {
+  try {
+    const { rows } = await pool.query("SELECT * FROM events");
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+// --- FACULTY SPECIFIC ENDPOINTS ---
+
+app.get("/api/faculty/:id/projects", async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT p.id, p.title, p.description, p.skills, u.name as owner_name, u.department 
+      FROM projects p
+      JOIN users u ON p.user_id = u.id
+      ORDER BY p.id DESC LIMIT 5
+    `);
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+app.get("/api/faculty/:id/requests", async (req, res) => {
+  const mentorId = req.params.id;
+  try {
+    const { rows: mentorships } = await pool.query(`
+      SELECT m.id as request_id, 'mentorship' as type, u.name, u.department, u.year, m.message, m.status, m.student_id as sender_id
+      FROM mentorship_requests m
+      JOIN users u ON m.student_id = u.id
+      WHERE m.mentor_id = $1 AND m.status = 'pending'
+    `, [mentorId]);
+    
+    const { rows: connections } = await pool.query(`
+        SELECT c.id as request_id, 'connection' as type, u.name, u.department, u.year, 'Wants to connect' as message, c.status, c.sender_id
+        FROM connections c
+        JOIN users u ON c.sender_id = u.id
+        WHERE c.receiver_id = $1 AND c.status = 'pending'
+    `, [mentorId]);
+
+    res.json([...mentorships, ...connections]);
+  } catch (err) {
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+app.put("/api/faculty/requests/:type/:id", async (req, res) => {
+  const { type, id } = req.params;
+  const { action } = req.body;
+  try {
+    if (type === 'mentorship') {
+        await pool.query('UPDATE mentorship_requests SET status = $1 WHERE id = $2', [action, id]);
+    } else if (type === 'connection') {
+        await pool.query('UPDATE connections SET status = $1 WHERE id = $2', [action, id]);
+    }
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+app.get("/api/suggestions", async (req, res) => {
+  const role = req.query.role || 'student';
+  try {
+    const { rows } = await pool.query(`
+      SELECT u.id, u.name, u.title, u.role, u.department, 
+      (SELECT string_agg(s.name, ',') FROM skills s WHERE s.user_id = u.id) as skills
+      FROM users u
+      WHERE u.role = $1
+      ORDER BY RANDOM() LIMIT 2
+    `, [role]);
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: "Database error" });
+  }
+});
 
 // Start server
 const PORT = process.env.PORT || 3000;
